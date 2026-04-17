@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vite/
+
+# Vite dev-mode artifacts
+vite.config.js.timestamp-*.mjs
+
+# Runtime SQLite (demo DB is re-seeded on server start)
+src/backend/demo.db
+src/backend/demo.db-shm
+src/backend/demo.db-wal
+
+# Environment files (local overrides)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# Editor / agent config
+.vscode/
+.idea/
+.claude/
+*.swp

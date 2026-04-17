@@ -1,0 +1,2288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ask Others to Pay — Walkthrough (Compose slide)</title>
+  <style>
+    /*
+      Slide uses container queries.
+      Native design size: 1920 × 1080 (standard 16:9).
+      All internal dimensions are expressed as cqw (container query width),
+      so the entire slide scales uniformly to fit any viewport.
+        1cqw = 1% of slide width
+    */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; min-height: 100vh; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #E4E7EC;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      gap: 28px;
+    }
+
+    /* Slide: fixed 16:9 aspect, width capped at 1600px */
+    .slide {
+      width: min(calc(100vw - 48px), 1600px);
+      aspect-ratio: 16 / 9;
+      background: #FFFFFF;
+      border-radius: 0.8cqw;
+      box-shadow: 0 2cqw 5cqw rgba(15, 23, 42, 0.14), 0 0 0 0.08cqw rgba(15, 23, 42, 0.06);
+      container-type: size;
+      container-name: slide;
+      overflow: hidden;
+      color: #111827;
+    }
+
+    /* ========== Slide internal layout ========== */
+    .slide-inner {
+      width: 100%;
+      height: 100%;
+      padding: 2.5cqw 4.4cqw 2.3cqw;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 1.8cqw;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .slide-header {
+      border-bottom: 0.08cqw solid #E5E7EB;
+      padding-bottom: 0.8cqw;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 2cqw;
+    }
+    .eyebrow {
+      font-size: 1.02cqw;
+      font-weight: 700;
+      color: #528FF0;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .slide-header h1 {
+      font-size: 2.5cqw;
+      font-weight: 700;
+      color: #072654;
+      margin-top: 0.5cqw;
+      letter-spacing: -0.015em;
+      line-height: 1.15;
+    }
+    .slide-header p {
+      font-size: 1.25cqw;
+      color: #6B7280;
+      margin-top: 0.4cqw;
+    }
+    .slide-meta {
+      text-align: right;
+      font-size: 0.95cqw;
+      color: #9CA3AF;
+      white-space: nowrap;
+    }
+    .slide-meta .num {
+      font-weight: 700;
+      color: #374151;
+      font-size: 1.15cqw;
+    }
+
+    /* Body: phone + under the hood
+       Phone has fixed cqw dimensions; Under the Hood fills remaining width. */
+    .slide-body {
+      display: grid;
+      grid-template-columns: 17.5cqw minmax(0, 1fr);
+      gap: 3cqw;
+      align-items: start;
+      min-height: 0;
+    }
+
+    /* Phone: explicit dimensions in cqw, self-contained. */
+    .phone {
+      background: #1F2937;
+      border-radius: 2.3cqw;
+      padding: 0.65cqw;
+      width: 17.5cqw;
+      box-shadow: 0 1.5cqw 3.2cqw rgba(15, 23, 42, 0.2);
+      flex-shrink: 0;
+    }
+    .phone-screen {
+      background: #F9FAFB;
+      border-radius: 1.75cqw;
+      overflow: hidden;
+      aspect-ratio: 9/19;
+      width: 100%;
+    }
+
+    /* Compose screen replica.
+       Virtual width 125% + scale(0.8) keeps the internal cqw values working
+       at the new 16cqw phone size without rewriting every child. */
+    .app {
+      width: 113.64%;
+      height: 113.64%;
+      transform-origin: top left;
+      transform: scale(0.88);
+      display: flex;
+      flex-direction: column;
+    }
+    .app-topbar {
+      background: #072654;
+      color: rgba(255,255,255,0.9);
+      padding: 0.75cqw 1cqw;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85cqw;
+    }
+    .tag {
+      background: rgba(255,255,255,0.15);
+      padding: 0.15cqw 0.6cqw;
+      border-radius: 999px;
+      color: #1CA672;
+      font-weight: 600;
+      font-size: 0.78cqw;
+    }
+    .app-steps {
+      background: #FFFFFF;
+      border-bottom: 0.08cqw solid #E5E7EB;
+      padding: 0.75cqw 0.9cqw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3cqw;
+      font-size: 0.75cqw;
+    }
+    .dot {
+      width: 1.3cqw; height: 1.3cqw;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7cqw; font-weight: 700;
+    }
+    .dot.done { background: #1CA672; color: #fff; }
+    .dot.active { background: #528FF0; color: #fff; }
+    .dot.todo { background: #F3F4F6; color: #9CA3AF; border: 0.06cqw solid #E5E7EB; }
+    .line { width: 1.1cqw; height: 0.08cqw; background: #E5E7EB; }
+    .line.done { background: #1CA672; }
+    .step-label { font-weight: 600; color: #072654; font-size: 0.78cqw; margin-left: 0.22cqw; }
+
+    .app-card {
+      background: #FFFFFF;
+      margin: 1cqw 1cqw 0;
+      border-radius: 0.9cqw;
+      border: 0.08cqw solid #E5E7EB;
+      box-shadow: 0 0.08cqw 0.25cqw rgba(0,0,0,0.04);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .app-card-header {
+      padding: 0.85cqw 1.1cqw;
+      border-bottom: 0.08cqw solid #F3F4F6;
+    }
+    .app-card-header h2 { font-size: 1cqw; font-weight: 600; color: #111827; }
+    .app-card-header p { font-size: 0.88cqw; color: #6B7280; margin-top: 0.15cqw; }
+    .app-form {
+      padding: 0.85cqw 1.1cqw 1.1cqw;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7cqw;
+    }
+    .field-label {
+      font-size: 0.72cqw;
+      font-weight: 700;
+      color: #6B7280;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 0.25cqw;
+    }
+    .field-input {
+      width: 100%;
+      padding: 0.45cqw 0.7cqw;
+      border: 0.08cqw solid #E5E7EB;
+      border-radius: 0.35cqw;
+      background: #F9FAFB;
+      font-size: 0.88cqw;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .picker { width: 1.05cqw; height: 1.05cqw; color: #528FF0; }
+    .textarea {
+      min-height: 3.6cqw;
+      padding: 0.45cqw 0.7cqw;
+      border: 0.08cqw solid #E5E7EB;
+      border-radius: 0.35cqw;
+      background: #F9FAFB;
+      font-size: 0.85cqw;
+      color: #111827;
+      line-height: 1.45;
+    }
+    .char-count { font-size: 0.68cqw; color: #9CA3AF; text-align: right; margin-top: 0.15cqw; }
+    .channels { display: flex; gap: 0.45cqw; }
+    .channel {
+      flex: 1;
+      padding: 0.45cqw;
+      border-radius: 0.35cqw;
+      border: 0.1cqw solid;
+      font-size: 0.8cqw;
+      font-weight: 500;
+      display: flex; align-items: center; justify-content: center; gap: 0.3cqw;
+    }
+    .channel.wa { border-color: #25D366; background: rgba(37, 211, 102, 0.08); color: #25D366; }
+    .channel.sms { border-color: #528FF0; background: rgba(82, 143, 240, 0.08); color: #528FF0; }
+    .check {
+      width: 0.75cqw; height: 0.75cqw;
+      border-radius: 0.15cqw;
+      background: currentColor;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.55cqw;
+    }
+    .channel-note { font-size: 0.7cqw; color: #9CA3AF; line-height: 1.35; }
+    .buttons { display: flex; gap: 0.45cqw; margin-top: 0.25cqw; }
+    .btn { padding: 0.55cqw 0.6cqw; border-radius: 0.45cqw; font-size: 0.85cqw; font-weight: 600; text-align: center; }
+    .btn.cancel { flex: 1; background: #F9FAFB; color: #6B7280; border: 0.08cqw solid #E5E7EB; }
+    .btn.primary { flex: 2; background: #528FF0; color: #fff; }
+
+    /* Under the Hood — matches phone height so the body row is cohesive */
+    .hood {
+      background: #0F172A;
+      color: #E2E8F0;
+      padding: 2.4cqw 2.8cqw;
+      border-radius: 1cqw;
+      display: flex;
+      flex-direction: column;
+      gap: 1.6cqw;
+      /* Match phone height: phone-screen is (17.5 - 1.3)cqw wide, * 19/9 + 1.3cqw padding ≈ 35.5cqw */
+      height: 35.5cqw;
+    }
+    .hood-title {
+      font-size: 0.95cqw;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #60A5FA;
+      padding-bottom: 1.1cqw;
+      border-bottom: 0.08cqw solid rgba(96, 165, 250, 0.15);
+    }
+    .hood-row {
+      display: grid;
+      grid-template-columns: 10cqw 1fr;
+      gap: 1.5cqw;
+      align-items: start;
+    }
+    .hood-label {
+      font-size: 0.85cqw;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #94A3B8;
+      padding-top: 0.25cqw;
+    }
+    .hood-value {
+      font-family: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+      font-size: 1.1cqw;
+      line-height: 1.6;
+      color: #E2E8F0;
+    }
+    .transition {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.9cqw;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.1cqw;
+    }
+    .pill {
+      background: rgba(96, 165, 250, 0.15);
+      color: #93C5FD;
+      padding: 0.2cqw 0.9cqw;
+      border-radius: 999px;
+      font-size: 1.02cqw;
+      font-weight: 600;
+    }
+    .pill.created { background: rgba(28, 166, 114, 0.18); color: #6EE7B7; }
+    .arrow { color: #64748B; font-size: 1.1cqw; }
+    .api-block {
+      background: rgba(96, 165, 250, 0.08);
+      border-left: 0.25cqw solid #60A5FA;
+      padding: 0.75cqw 1cqw;
+      border-radius: 0.3cqw;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.1cqw;
+      color: #BFDBFE;
+      margin-bottom: 0.6cqw;
+    }
+    .api-body {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.92cqw;
+      color: #64748B;
+      padding-left: 0.3cqw;
+      line-height: 1.5;
+    }
+    .webhook {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 1.1cqw;
+      background: rgba(168, 85, 247, 0.1);
+      color: #C4B5FD;
+      padding: 0.4cqw 1cqw;
+      border-radius: 0.3cqw;
+      display: inline-block;
+      border-left: 0.25cqw solid #A855F7;
+    }
+    .hood-note {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 1.05cqw;
+      color: #CBD5E1;
+      line-height: 1.75;
+      font-style: italic;
+    }
+    .hood-note strong { color: #E2E8F0; font-style: normal; }
+    .hood-note code {
+      font-family: "JetBrains Mono", monospace;
+      font-style: normal;
+      font-size: 0.95cqw;
+      color: #FCA5A5;
+    }
+
+    /* Reusable mock-phone content for walkthrough slides
+       (inside .app so they inherit the scale(0.85) transform). */
+    .mock-topbar {
+      background: #072654;
+      color: rgba(255,255,255,0.95);
+      padding: 0.7cqw 1cqw;
+      font-size: 0.78cqw;
+      font-weight: 600;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .mock-topbar .brand { font-weight: 700; letter-spacing: -0.01em; }
+    .mock-topbar .sub { font-size: 0.65cqw; color: rgba(255,255,255,0.65); font-weight: 500; }
+
+    .mock-body {
+      padding: 0.9cqw 1cqw;
+      display: flex; flex-direction: column; gap: 0.75cqw;
+      background: #F9FAFB;
+      flex: 1;
+    }
+
+    .mock-label {
+      font-size: 0.66cqw;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .mock-card {
+      background: #FFFFFF;
+      border: 0.08cqw solid #E5E7EB;
+      border-radius: 0.6cqw;
+      padding: 0.7cqw 0.85cqw;
+      box-shadow: 0 0.08cqw 0.2cqw rgba(15,23,42,0.03);
+    }
+    .mock-card .item { font-size: 0.78cqw; color: #111827; font-weight: 500; }
+    .mock-card .item-sub { font-size: 0.65cqw; color: #6B7280; margin-top: 0.15cqw; }
+    .mock-card .row {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .mock-card .row.total {
+      font-weight: 700; font-size: 0.9cqw;
+      padding-top: 0.55cqw; margin-top: 0.55cqw;
+      border-top: 0.08cqw solid #F3F4F6;
+      color: #111827;
+    }
+
+    .mock-methods { display: flex; flex-direction: column; gap: 0.45cqw; }
+    .mock-method {
+      background: #FFFFFF;
+      border: 0.08cqw solid #E5E7EB;
+      border-radius: 0.5cqw;
+      padding: 0.65cqw 0.85cqw;
+      font-size: 0.78cqw; color: #111827;
+      display: flex; align-items: center; gap: 0.6cqw;
+    }
+    .mock-method .dot-ring {
+      width: 0.85cqw; height: 0.85cqw;
+      border-radius: 50%;
+      border: 0.1cqw solid #CBD5E1;
+      flex-shrink: 0;
+    }
+    .mock-method.active {
+      border-color: #528FF0;
+      background: rgba(82,143,240,0.06);
+      font-weight: 600;
+    }
+    .mock-method.active .dot-ring {
+      background: #528FF0; border-color: #528FF0;
+    }
+    .mock-method .tag-fail {
+      margin-left: auto;
+      font-size: 0.62cqw; color: #B91C1C;
+      background: #FEF2F2; border-radius: 999px;
+      padding: 0.15cqw 0.5cqw;
+      font-weight: 600;
+    }
+
+    .mock-big-amount {
+      font-size: 2.2cqw; font-weight: 800;
+      color: #111827; letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+    .mock-merchant {
+      display: flex; align-items: center; gap: 0.45cqw;
+      font-size: 0.8cqw; font-weight: 600;
+      color: #111827;
+    }
+    .mock-verified-badge {
+      background: #1CA672; color: #fff;
+      border-radius: 999px;
+      font-size: 0.55cqw; font-weight: 700;
+      padding: 0.15cqw 0.5cqw;
+      letter-spacing: 0.05em;
+    }
+
+    .mock-wa-card {
+      background: #DCF8C6;
+      border-radius: 0.65cqw;
+      padding: 0.7cqw 0.85cqw;
+      font-size: 0.7cqw;
+      color: #111827;
+      line-height: 1.5;
+      box-shadow: 0 0.08cqw 0.2cqw rgba(15,23,42,0.08);
+    }
+    .mock-wa-preamble { color: #111827; }
+    .mock-wa-sys {
+      background: rgba(255,255,255,0.7);
+      border-radius: 0.35cqw;
+      padding: 0.55cqw 0.7cqw;
+      margin-top: 0.55cqw;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.58cqw;
+      line-height: 1.6;
+      color: #334155;
+    }
+    .mock-wa-sys .sys-header {
+      font-family: inherit; color: #072654; font-weight: 700;
+    }
+    .mock-wa-sys .sys-verified {
+      color: #15803D; font-weight: 700;
+    }
+    .mock-wa-meta {
+      margin-top: 0.4cqw;
+      font-size: 0.55cqw;
+      color: rgba(15,23,42,0.55);
+      text-align: right;
+    }
+
+    .mock-trust {
+      background: #F0FDF4;
+      border: 0.08cqw solid #86EFAC;
+      border-radius: 0.6cqw;
+      padding: 0.65cqw 0.8cqw;
+      display: flex; flex-direction: column; gap: 0.35cqw;
+    }
+    .mock-trust .trust-row {
+      display: flex; align-items: center; gap: 0.45cqw;
+      font-size: 0.7cqw; color: #065F46;
+    }
+    .mock-trust .trust-row strong { color: #064E3B; }
+    .mock-trust .trust-icon { color: #15803D; font-weight: 800; font-size: 0.78cqw; }
+
+    .mock-btn-primary {
+      background: #528FF0; color: #fff;
+      text-align: center; padding: 0.75cqw;
+      border-radius: 0.5cqw;
+      font-weight: 700; font-size: 0.85cqw;
+    }
+    .mock-btn-secondary {
+      background: #F9FAFB; color: #6B7280;
+      border: 0.08cqw solid #E5E7EB;
+      text-align: center; padding: 0.65cqw;
+      border-radius: 0.5cqw;
+      font-weight: 500; font-size: 0.75cqw;
+    }
+    .mock-btn-row { display: flex; gap: 0.45cqw; }
+    .mock-btn-row .mock-btn-primary { flex: 2; }
+    .mock-btn-row .mock-btn-secondary { flex: 1; }
+
+    .mock-success-hero {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.55cqw; padding: 1cqw 0 0.5cqw;
+    }
+    .mock-success-check {
+      width: 3.6cqw; height: 3.6cqw;
+      border-radius: 50%;
+      background: #1CA672; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2cqw; font-weight: 800;
+    }
+    .mock-success-title {
+      font-size: 1.1cqw; font-weight: 700; color: #065F46;
+    }
+    .mock-success-sub {
+      font-size: 0.72cqw; color: #6B7280;
+    }
+
+    .mock-webhook-log {
+      display: flex; flex-direction: column; gap: 0.35cqw;
+    }
+    .mock-webhook-row {
+      background: #0F172A;
+      border-left: 0.2cqw solid #60A5FA;
+      padding: 0.4cqw 0.6cqw;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.58cqw;
+      color: #C7D2FE;
+      border-radius: 0.2cqw;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .mock-webhook-row.green { border-left-color: #22C55E; color: #BBF7D0; }
+    .mock-webhook-row .ts { color: #64748B; font-size: 0.5cqw; }
+
+    /* ========== Full-width slide components ========== */
+    .full-body {
+      min-height: 0;
+      display: grid;
+      gap: 2.4cqw;
+      align-items: start;
+    }
+    .full-body.two-col { grid-template-columns: 1fr 1fr; }
+    .full-body.phone-plus { grid-template-columns: 17.5cqw minmax(0, 1fr); gap: 3cqw; }
+
+    .text-col h2 {
+      font-size: 1.5cqw;
+      color: #072654;
+      font-weight: 700;
+      margin-bottom: 0.8cqw;
+      letter-spacing: -0.01em;
+    }
+    .text-col .lede {
+      font-size: 1.1cqw;
+      color: #374151;
+      line-height: 1.55;
+      margin-bottom: 0.9cqw;
+    }
+    .text-col ul {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 0.6cqw;
+    }
+    .text-col li {
+      font-size: 0.95cqw;
+      color: #374151;
+      line-height: 1.5;
+      padding-left: 1.4cqw;
+      position: relative;
+    }
+    .text-col li::before {
+      content: "—";
+      color: #528FF0;
+      font-weight: 700;
+      position: absolute; left: 0;
+    }
+    .text-col li strong { color: #072654; }
+
+    .callout {
+      background: #F9FAFB;
+      border: 0.08cqw solid #E5E7EB;
+      border-left: 0.35cqw solid #528FF0;
+      border-radius: 0.5cqw;
+      padding: 1cqw 1.2cqw;
+      font-size: 0.95cqw;
+      color: #374151;
+      line-height: 1.55;
+    }
+    .callout strong { color: #072654; }
+    .callout.dark {
+      background: #0F172A;
+      border-color: rgba(96,165,250,0.15);
+      border-left-color: #60A5FA;
+      color: #CBD5E1;
+    }
+    .callout.dark strong { color: #E2E8F0; }
+
+    /* L0 flow diagram */
+    .flow {
+      display: flex; flex-direction: column; align-items: stretch;
+      gap: 0.6cqw;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .flow-box {
+      background: #FFFFFF;
+      border: 0.12cqw solid #E5E7EB;
+      border-radius: 0.6cqw;
+      padding: 1cqw 1.4cqw;
+      text-align: center;
+      font-size: 1cqw;
+    }
+    .flow-box .title {
+      font-weight: 700;
+      color: #072654;
+      font-size: 1.15cqw;
+      margin-bottom: 0.4cqw;
+      letter-spacing: -0.01em;
+    }
+    .flow-box .sub {
+      font-size: 0.82cqw;
+      color: #6B7280;
+      line-height: 1.5;
+    }
+    .flow-box.highlight {
+      border-color: #528FF0;
+      background: rgba(82,143,240,0.05);
+    }
+    .flow-box.dark {
+      background: #072654;
+      border-color: #072654;
+      color: #fff;
+    }
+    .flow-box.dark .title { color: #fff; }
+    .flow-box.dark .sub { color: rgba(255,255,255,0.75); }
+    .flow-arrow {
+      text-align: center;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.85cqw;
+      color: #6B7280;
+      font-weight: 600;
+    }
+
+    /* Schema / inventory tables */
+    .table-wrap {
+      background: #FFFFFF;
+      border: 0.08cqw solid #E5E7EB;
+      border-radius: 0.6cqw;
+      overflow: hidden;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85cqw;
+    }
+    .data-table th, .data-table td {
+      padding: 0.6cqw 0.9cqw;
+      text-align: left;
+      border-bottom: 0.08cqw solid #F3F4F6;
+      vertical-align: top;
+    }
+    .data-table th {
+      background: #F9FAFB;
+      font-size: 0.72cqw;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 700;
+    }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table code {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.82cqw;
+      color: #0F172A;
+      background: #F3F4F6;
+      padding: 0.1cqw 0.3cqw;
+      border-radius: 0.2cqw;
+    }
+    .data-table .method {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-weight: 700;
+      color: #528FF0;
+      font-size: 0.78cqw;
+    }
+    .data-table .method.post { color: #528FF0; }
+    .data-table .method.get { color: #1CA672; }
+    .data-table .note {
+      font-size: 0.75cqw;
+      color: #6B7280;
+      font-style: italic;
+    }
+    .data-table .key-marker {
+      background: #FEF3C7;
+      color: #92400E;
+      font-size: 0.6cqw;
+      padding: 0.1cqw 0.35cqw;
+      border-radius: 999px;
+      font-weight: 700;
+      margin-left: 0.3cqw;
+      letter-spacing: 0.03em;
+    }
+    .data-table .key-marker.uk { background: #DBEAFE; color: #1E40AF; }
+
+    /* State machine */
+    .sm-canvas {
+      background: #FFFFFF;
+      border: 0.08cqw solid #E5E7EB;
+      border-radius: 0.6cqw;
+      padding: 2cqw;
+      height: 100%;
+    }
+    .sm-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1cqw 0.3cqw;
+      align-items: center;
+    }
+    .sm-state {
+      padding: 0.6cqw 0.8cqw;
+      border-radius: 0.5cqw;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 0.85cqw;
+      text-align: center;
+      font-weight: 600;
+    }
+    .sm-state.happy { background: rgba(28,166,114,0.12); color: #065F46; }
+    .sm-state.terminal-good { background: #1CA672; color: #fff; }
+    .sm-state.terminal-bad { background: #FEF2F2; color: #B91C1C; border: 0.08cqw solid #FECACA; }
+    .sm-state.initial { background: #F3F4F6; color: #6B7280; }
+    .sm-arrow {
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      color: #94A3B8;
+      font-size: 0.9cqw;
+    }
+
+    /* Tier gradient */
+    .tier-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1cqw;
+      min-height: 0;
+    }
+    .tier-card {
+      border-radius: 0.6cqw;
+      padding: 1cqw 1.1cqw;
+      display: flex; flex-direction: column; gap: 0.5cqw;
+      font-size: 0.82cqw;
+      color: #374151;
+      border: 0.08cqw solid;
+    }
+    .tier-card .tier-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .tier-card .tier-name {
+      font-size: 1.2cqw; font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .tier-card .tier-sub {
+      font-size: 0.72cqw; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .tier-card .tier-criteria {
+      font-size: 0.72cqw;
+      color: #6B7280;
+      padding-bottom: 0.4cqw;
+      margin-bottom: 0.2cqw;
+      border-bottom: 0.08cqw solid rgba(0,0,0,0.05);
+    }
+    .tier-card ul { list-style: none; display: flex; flex-direction: column; gap: 0.25cqw; }
+    .tier-card li { font-size: 0.78cqw; line-height: 1.45; padding-left: 0.9cqw; position: relative; }
+    .tier-card li::before { content: "✓"; position: absolute; left: 0; font-weight: 700; }
+    .tier-card li.off { color: #9CA3AF; }
+    .tier-card li.off::before { content: "—"; }
+    .tier-t1 { background: #F0FDF4; border-color: #86EFAC; }
+    .tier-t1 .tier-name, .tier-t1 li::before { color: #15803D; }
+    .tier-t1 .tier-sub { color: #15803D; }
+    .tier-t2 { background: #EFF6FF; border-color: #93C5FD; }
+    .tier-t2 .tier-name, .tier-t2 li::before { color: #1D4ED8; }
+    .tier-t2 .tier-sub { color: #1D4ED8; }
+    .tier-t3 { background: #F9FAFB; border-color: #D1D5DB; }
+    .tier-t3 .tier-name, .tier-t3 li::before { color: #374151; }
+    .tier-t3 .tier-sub { color: #374151; }
+    .tier-t4 { background: #FEF2F2; border-color: #FCA5A5; }
+    .tier-t4 .tier-name, .tier-t4 li::before { color: #B91C1C; }
+    .tier-t4 .tier-sub { color: #B91C1C; }
+
+    /* Webhook event cards */
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1cqw;
+    }
+    .event-card {
+      background: #FFFFFF;
+      border: 0.08cqw solid #E5E7EB;
+      border-left: 0.3cqw solid #A855F7;
+      border-radius: 0.5cqw;
+      padding: 0.9cqw 1.1cqw;
+      font-size: 0.85cqw;
+      color: #374151;
+      line-height: 1.5;
+    }
+    .event-card .event-name {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 1cqw;
+      color: #7E22CE;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 0.35cqw;
+    }
+    .event-card.standard { border-left-color: #22C55E; }
+    .event-card.standard .event-name { color: #15803D; }
+    .event-card .event-note {
+      font-size: 0.72cqw;
+      color: #6B7280;
+      font-style: italic;
+      margin-top: 0.3cqw;
+    }
+
+    /* Annotation */
+    .annotation {
+      border-top: 0.08cqw solid #E5E7EB;
+      padding-top: 1.2cqw;
+      display: flex;
+      align-items: flex-start;
+      gap: 1.2cqw;
+    }
+    .annotation-marker {
+      color: #528FF0;
+      font-size: 1.7cqw;
+      font-weight: 700;
+      flex-shrink: 0;
+      line-height: 1.3;
+    }
+    .annotation-text {
+      font-size: 1.3cqw;
+      color: #374151;
+      line-height: 1.6;
+      max-width: 70cqw;
+    }
+    .annotation-text strong { color: #111827; }
+
+    /* Print — one 16:9 slide per page (matches slide native aspect). */
+    @media print {
+      body {
+        background: #FFFFFF;
+        padding: 0;
+        gap: 0;
+        display: block;
+        min-height: 0;
+      }
+      .slide {
+        width: 13.333in;
+        height: 7.5in;
+        max-width: none;
+        border-radius: 0;
+        box-shadow: none;
+        page-break-after: always;
+        break-after: page;
+      }
+      .slide:last-child { page-break-after: auto; break-after: auto; }
+      @page {
+        size: 13.333in 7.5in;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       SLIDE 1: Executive summary · The problem
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Executive summary · 1 of 2</div>
+          <h1>Asking someone to pay is common. It's never had a clean digital path.</h1>
+          <p>A daughter at Croma. A spouse at a restaurant. An accountant forwarding an invoice. It happens constantly — offline and informally.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 1</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body two-col" style="align-content:center">
+        <div class="text-col">
+          <h2>The need is persistent</h2>
+          <ul>
+            <li><strong>Priya</strong> on Croma checkout — UPI has failed twice; asks her father.</li>
+            <li><strong>Meera</strong> at The Bombay Canteen — scans the bill QR, asks her husband.</li>
+            <li><strong>Anita</strong> (accountant) forwards a Razorpay Payment Link to her CFO.</li>
+            <li>Today this resolves as a phone call followed by a separate UPI transfer — <strong>off Razorpay's rails</strong>, no order linkage, no audit trail.</li>
+          </ul>
+        </div>
+
+        <div class="text-col">
+          <h2>No existing primitive fits</h2>
+          <ul>
+            <li><strong>UPI P2P collect</strong> came closest — <strong>banned by NPCI Oct 2025</strong> after widespread fraud abuse.</li>
+            <li><strong>UPI Circle</strong> addresses a narrow slice — pre-registered trusted users with spending limits. Requires setup, no merchant context, not designed for ad-hoc delegation at the payment moment.</li>
+            <li>Everything else: phone call + manual transfer. No merchant context, no trust signals, no audit trail, no receipt.</li>
+          </ul>
+          <div class="callout" style="margin-top:1cqw">
+            <strong>Why Razorpay:</strong> this fits Razorpay's existing surfaces (Checkout, POS QR, Payment Link), brings off-rail volume on-rail, and — because delegated payments emit the same webhooks as direct ones — reaches merchants' backends without integration work.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>The open question is adoption, not whether the need exists.</strong> Only real-world usage can answer it — engineering alone can't.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 2: Executive summary · The solution + what was built
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Executive summary · 2 of 2</div>
+          <h1>One delegation primitive. Three entries. One approval page.</h1>
+          <p>Working end-to-end prototype — React frontend, Express/Node backend, SQLite. Walkable browser demo covering all 5 scenarios.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 2</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1.15fr 1fr; gap: 3cqw">
+        <div class="flow">
+          <div class="flow-box">
+            <div class="title">Entry surfaces</div>
+            <div class="sub">A: Checkout SDK · B: QR Landing · C: Payment Link</div>
+          </div>
+          <div class="flow-arrow">│ POST /v1/delegations ▼</div>
+          <div class="flow-box highlight">
+            <div class="title">Delegation primitive</div>
+            <div class="sub">Bound to an order_id · Advisory tier T1–T4 assigned server-side · One-open-per-order (DB-enforced) · State machine + TTL</div>
+          </div>
+          <div class="flow-arrow">│ Share via WhatsApp / SMS (requestor's own device) ▼</div>
+          <div class="flow-box">
+            <div class="title">Approver page — rzp.io/r/{id}</div>
+            <div class="sub">Razorpay-hosted · tier-adaptive trust panel · approver pays with their own method</div>
+          </div>
+          <div class="flow-arrow">│ Standard Razorpay rail ▼</div>
+          <div class="flow-box dark">
+            <div class="title">Webhooks to merchant</div>
+            <div class="sub"><code style="color:#BFDBFE; font-family:'JetBrains Mono',monospace">payment.captured</code> · <code style="color:#BFDBFE; font-family:'JetBrains Mono',monospace">order.paid</code> — identical to direct payments</div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.9cqw">
+          <div class="callout dark">
+            <strong>No merchant code changes required.</strong> The last two webhook events are identical to direct payments. Merchant's existing handler fires unchanged — that's the adoption property.
+          </div>
+          <div class="callout">
+            <strong>Server-owned integrity.</strong> Advisory tier computed from Razorpay merchant data (never client-supplied). Preamble sanitized (URLs, phone numbers, RTL overrides, homoglyphs stripped, 140-char cap). System block tamper-proof.
+          </div>
+          <div class="callout">
+            <strong>Success metrics (what real usage would need to show):</strong> adoption rate, approval rate, payment completion rate, time to resolution. Thresholds to be set against a live baseline.
+          </div>
+          <div class="callout">
+            <strong>What was built in this repo:</strong> React + Express/Node + SQLite. 5 demo scenarios across all entry points. Full delegation state machine, server-side tier assignment, anti-spoofing sanitization, webhook event log, "Under the Hood" developer panel.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>One primitive, three entry points, one approval page, one webhook contract.</strong> Entry surfaces are decoupled from the primitive; the primitive is decoupled from the merchant's integration.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE: Web flow · Entry (Step 1 of 5)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Web flow · Step 1 of 5</div>
+          <h1>See the choice</h1>
+          <p>On the merchant's own checkout surface — alongside the usual pay buttons.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 3</div>
+          <div>Ask Others to Pay — Walkthrough</div>
+        </div>
+      </header>
+
+      <div class="slide-body">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="app">
+              <div class="mock-topbar">
+                <div class="brand">Croma</div>
+                <div class="sub">Secure checkout</div>
+              </div>
+              <div class="mock-body">
+                <div class="mock-card">
+                  <div class="row">
+                    <div>
+                      <div class="item">Sony WH-CH720N</div>
+                      <div class="item-sub">Wireless Headphones · Qty 1</div>
+                    </div>
+                    <div class="item">₹4,999</div>
+                  </div>
+                  <div class="row total">
+                    <span>Total</span>
+                    <span>₹4,999</span>
+                  </div>
+                </div>
+                <div class="mock-label">Pay with</div>
+                <div class="mock-methods">
+                  <div class="mock-method">
+                    <span class="dot-ring"></span>UPI
+                    <span class="tag-fail">failed ×2</span>
+                  </div>
+                  <div class="mock-method"><span class="dot-ring"></span>Cards</div>
+                  <div class="mock-method"><span class="dot-ring"></span>Net Banking</div>
+                  <div class="mock-method active"><span class="dot-ring"></span>Ask Someone to Pay</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hood">
+          <div class="hood-title">Under the Hood</div>
+
+          <div class="hood-row">
+            <div class="hood-label">State</div>
+            <div class="hood-value">
+              <span class="transition">
+                <span class="pill">—</span>
+                <span class="arrow">→</span>
+                <span class="pill">—</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">API</div>
+            <div>
+              <div class="api-block">POST /v1/orders <span style="color:#64748B; font-size:0.85cqw; font-weight:normal">(merchant, existing)</span></div>
+              <div class="api-body">No delegation exists yet — the order is what "Ask Someone" will attach to.</div>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Webhook</div>
+            <div class="hood-value" style="color:#64748B; font-family:inherit; font-size:1cqw">None yet</div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Server</div>
+            <div class="hood-note">
+              <strong>Eligibility gated upstream.</strong> Merchant age ≥ 30 days AND not risk-flagged. The button only renders for eligible merchants — ineligibility never reaches the delegation primitive.
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Entry decides who's in.</strong> If the merchant shouldn't be delegable, the button never appears. Delegation itself doesn't have to police who gets to use it.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE: Web flow · Compose (Step 2 of 5)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <!-- Header -->
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Web flow · Step 2 of 5</div>
+          <h1>Compose the delegation</h1>
+          <p>Requestor picks the approver, writes a short note, shares.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 4</div>
+          <div>Ask Others to Pay — Walkthrough</div>
+        </div>
+      </header>
+
+      <!-- Body -->
+      <div class="slide-body">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="app">
+              <div class="app-topbar">
+                <div>← All scenarios</div>
+                <div style="display: flex; align-items: center; gap: 0.5cqw;">
+                  <span style="opacity: 0.6;">Entry A</span>
+                  <span class="tag">T1</span>
+                </div>
+              </div>
+
+              <div class="app-steps">
+                <div class="dot done">✓</div>
+                <span class="step-label" style="color:#1CA672">Entry</span>
+                <div class="line done"></div>
+                <div class="dot active">2</div>
+                <span class="step-label">Compose</span>
+                <div class="line"></div>
+                <div class="dot todo">3</div>
+                <div class="line"></div>
+                <div class="dot todo">4</div>
+                <div class="line"></div>
+                <div class="dot todo">5</div>
+              </div>
+
+              <div class="app-card">
+                <div class="app-card-header">
+                  <h2>Ask Someone to Pay</h2>
+                  <p>₹4,999 at Croma Electronics</p>
+                </div>
+                <div class="app-form">
+                  <div>
+                    <div class="field-label">Who should pay?</div>
+                    <div class="field-input">
+                      <span>+91 98765 43211</span>
+                      <svg class="picker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="field-label">Their name (optional)</div>
+                    <div class="field-input"><span style="color:#111827">Rajesh Sharma</span></div>
+                  </div>
+                  <div>
+                    <div class="field-label">Your message (optional)</div>
+                    <div class="textarea">Papa, can you please pay for these headphones? Need them for college.</div>
+                    <div class="char-count">71 characters left</div>
+                  </div>
+                  <div>
+                    <div class="field-label">Send via</div>
+                    <div class="channels">
+                      <div class="channel wa"><span class="check">✓</span> WhatsApp</div>
+                      <div class="channel sms"><span class="check">✓</span> SMS</div>
+                    </div>
+                    <div class="channel-note" style="margin-top:0.35cqw">You share from your own WhatsApp / SMS.</div>
+                  </div>
+                  <div class="buttons">
+                    <div class="btn cancel">Cancel</div>
+                    <div class="btn primary">Share Payment Request</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hood">
+          <div class="hood-title">Under the Hood</div>
+
+          <div class="hood-row">
+            <div class="hood-label">State</div>
+            <div class="hood-value">
+              <span class="transition">
+                <span class="pill">—</span>
+                <span class="arrow">→</span>
+                <span class="pill created">created</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">API</div>
+            <div>
+              <div class="api-block">POST /v1/delegations</div>
+              <div class="api-body">{ order_id, approver_phone, entry_point, preamble_text, channel_whatsapp, channel_sms }</div>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Webhook</div>
+            <div class="hood-value">
+              <span class="webhook">order.delegation_requested</span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Server</div>
+            <div class="hood-note">
+              <strong>One-open-per-order</strong> enforced at the DB layer — returns <code>409</code> if violated. <strong>Preamble sanitized</strong>: URLs, phone numbers, RTL overrides, homoglyphs stripped; 140-char hard cap. <strong>Advisory tier</strong> (value-add) assigned server-side from existing merchant data — never user-supplied.
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Annotation -->
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Trust rides the delivery channel.</strong> The approver recognizes the request because it arrives from a saved WhatsApp / SMS contact — their son asking, not a stranger with a link.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE: Web flow · Share preview (Step 3 of 5)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Web flow · Step 3 of 5</div>
+          <h1>Preview what the approver receives</h1>
+          <p>Before sharing, the requestor sees exactly what the approver will see.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 5</div>
+          <div>Ask Others to Pay — Walkthrough</div>
+        </div>
+      </header>
+
+      <div class="slide-body">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="app">
+              <div class="mock-topbar">
+                <div class="brand">Preview</div>
+                <div class="sub">What Rajesh will see</div>
+              </div>
+              <div class="mock-body">
+                <div class="mock-wa-card">
+                  <div class="mock-wa-preamble">Papa, can you please pay for these headphones? Need them for college.</div>
+                  <div class="mock-wa-sys">
+                    <div class="sys-header">Razorpay payment request</div>
+                    Amount: ₹4,999<br>
+                    Merchant: Croma Electronics <span class="sys-verified">✓ Verified</span><br>
+                    For: Sony WH-CH720N Wireless Headphones<br>
+                    Approve: rzp.io/r/deleg_abc123<br>
+                    Expires: 24h
+                  </div>
+                  <div class="mock-wa-meta">12:17 PM</div>
+                </div>
+                <div class="mock-label" style="margin-top:0.3cqw">Send via</div>
+                <div style="display:flex; gap:0.45cqw">
+                  <div class="mock-method active" style="flex:1; justify-content:center"><span class="dot-ring"></span>WhatsApp</div>
+                  <div class="mock-method active" style="flex:1; justify-content:center"><span class="dot-ring"></span>SMS</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hood">
+          <div class="hood-title">Under the Hood</div>
+
+          <div class="hood-row">
+            <div class="hood-label">State</div>
+            <div class="hood-value">
+              <span class="transition">
+                <span class="pill created">created</span>
+                <span class="arrow">→</span>
+                <span class="pill">shared</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">API</div>
+            <div>
+              <div class="api-block">POST /v1/delegations/:id/share</div>
+              <div class="api-body">{ channels: ["whatsapp", "sms"] }</div>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Webhook</div>
+            <div class="hood-value" style="color:#64748B; font-family:inherit; font-size:1cqw">None new (created already fired <code style="color:#C4B5FD; font-family:'JetBrains Mono',monospace; font-size:0.9cqw">order.delegation_requested</code>)</div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Server</div>
+            <div class="hood-note">
+              <strong>System block is server-rendered and tamper-proof.</strong> Preamble lives above, separated by two newlines. <strong>OG metadata</strong> for WhatsApp rich preview is served from the same fields — preview, delivered message, and approval page all render from one source.
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>One source of truth across preview, message, and approval page.</strong> The requestor can't show Rajesh something different from what the approval page will say. That invariant is what makes the preamble safe to ship.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE: Web flow · Approver (Step 4 of 5)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Web flow · Step 4 of 5</div>
+          <h1>Approver opens the link</h1>
+          <p>Razorpay-hosted page at <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">rzp.io/r/{id}</code>, tier-adaptive trust panel.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 6</div>
+          <div>Ask Others to Pay — Walkthrough</div>
+        </div>
+      </header>
+
+      <div class="slide-body">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="app">
+              <div class="mock-topbar">
+                <div class="brand" style="font-size:0.72cqw; font-weight:500; color:rgba(255,255,255,0.8)">rzp.io/r/deleg_abc123</div>
+                <div style="font-size:0.6cqw; color:#1CA672; font-weight:700">● SECURE</div>
+              </div>
+              <div class="mock-body" style="gap:0.7cqw">
+                <div class="mock-merchant">
+                  Croma Electronics
+                  <span class="mock-verified-badge">VERIFIED</span>
+                </div>
+                <div class="mock-big-amount">₹4,999</div>
+                <div style="font-size:0.7cqw; color:#6B7280">Sony WH-CH720N Wireless Headphones</div>
+
+                <div class="mock-trust">
+                  <div class="trust-row"><span class="trust-icon">✓</span><strong>T1 · Very strong support</strong></div>
+                  <div class="trust-row"><span class="trust-icon">✓</span>KYC verified enterprise</div>
+                  <div class="trust-row"><span class="trust-icon">✓</span>Category: Electronics &amp; Appliances</div>
+                  <div class="trust-row"><span class="trust-icon">✓</span>On Razorpay since 2015</div>
+                </div>
+
+                <div style="font-size:0.65cqw; color:#6B7280; font-style:italic; padding:0 0.3cqw">"Papa, can you please pay for these headphones? Need them for college."</div>
+
+                <div class="mock-btn-row" style="margin-top:auto">
+                  <div class="mock-btn-secondary">Decline</div>
+                  <div class="mock-btn-primary">Approve &amp; Pay</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hood">
+          <div class="hood-title">Under the Hood</div>
+
+          <div class="hood-row">
+            <div class="hood-label">State</div>
+            <div class="hood-value">
+              <span class="transition">
+                <span class="pill">shared</span>
+                <span class="arrow">→</span>
+                <span class="pill created">opened</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">API</div>
+            <div>
+              <div class="api-block">GET /v1/delegations/:id</div>
+              <div class="api-body">Auto-expires if TTL passed. Re-renders system block server-side on every open.</div>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Webhook</div>
+            <div class="hood-value" style="color:#64748B; font-family:inherit; font-size:1cqw">None — opens aren't merchant-visible</div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Server</div>
+            <div class="hood-note">
+              <strong>Advisory tier assigned server-side</strong> from merchant signals (KYC, MCC, tenure). T1 shows line items + verified badge; T4 shows caution banner. Tier never comes from the client — the frontend renders what the server decides.
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Trust panel is additive, not load-bearing.</strong> Razorpay already controls who reaches this page — the panel adds context for the approver, it doesn't gate the transaction.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE: Web flow · Done (Step 5 of 5)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Web flow · Step 5 of 5</div>
+          <h1>Paid — merchant gets standard webhooks</h1>
+          <p>Identical events to direct payments. Merchant's existing handler fires unchanged.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 7</div>
+          <div>Ask Others to Pay — Walkthrough</div>
+        </div>
+      </header>
+
+      <div class="slide-body">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="app">
+              <div class="mock-topbar">
+                <div class="brand">Payment complete</div>
+                <div class="sub">Order #ORD_5Oy8</div>
+              </div>
+              <div class="mock-body" style="gap:0.75cqw">
+                <div class="mock-success-hero">
+                  <div class="mock-success-check">✓</div>
+                  <div class="mock-success-title">Paid</div>
+                  <div class="mock-success-sub">₹4,999 · Croma Electronics</div>
+                </div>
+                <div style="font-size:0.65cqw; color:#6B7280; text-align:center">Paid by Rajesh via UPI · rajesh@hdfc</div>
+
+                <div class="mock-label" style="margin-top:0.3cqw">Webhooks fired</div>
+                <div class="mock-webhook-log">
+                  <div class="mock-webhook-row">order.delegation_approved <span class="ts">+0s</span></div>
+                  <div class="mock-webhook-row green">payment.captured <span class="ts">+1s</span></div>
+                  <div class="mock-webhook-row green">order.paid <span class="ts">+1s</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hood">
+          <div class="hood-title">Under the Hood</div>
+
+          <div class="hood-row">
+            <div class="hood-label">State</div>
+            <div class="hood-value">
+              <span class="transition">
+                <span class="pill">opened</span>
+                <span class="arrow">→</span>
+                <span class="pill created">captured</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">API</div>
+            <div>
+              <div class="api-block">POST /v1/delegations/:id/pay → /capture</div>
+              <div class="api-body">Standard Razorpay payment rails from here. Delegation is closed; payment records attach <code style="color:#FCA5A5; font-family:'JetBrains Mono',monospace">delegation_id</code>.</div>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Webhook</div>
+            <div style="display:flex; flex-direction:column; gap:0.35cqw">
+              <span class="webhook">order.delegation_approved</span>
+              <span class="webhook" style="background:rgba(34,197,94,0.12); color:#86EFAC; border-left-color:#22C55E">payment.captured</span>
+              <span class="webhook" style="background:rgba(34,197,94,0.12); color:#86EFAC; border-left-color:#22C55E">order.paid</span>
+            </div>
+          </div>
+
+          <div class="hood-row">
+            <div class="hood-label">Server</div>
+            <div class="hood-note">
+              The last two events are <strong>identical to direct-payment webhooks</strong>. Merchant's existing handler processes this order like any other. <code>delegation_id</code> rides in <code>notes</code> for reconciliation if the merchant wants it.
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>No merchant code changes.</strong> That's the adoption story — this primitive reaches every Razorpay merchant's backend without integration work.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 8: Architecture · Repo map
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Architecture · 1 of 5</div>
+          <h1>What's in this repository</h1>
+          <p>Runtime: React 18 + Vite frontend, Node.js + Express backend, SQLite (<code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">better-sqlite3</code>). One process, no external dependencies.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 8</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body two-col" style="align-content:center">
+        <div class="text-col">
+          <h2>Backend (src/backend/)</h2>
+          <ul style="gap:0.5cqw">
+            <li><strong>routes/delegation.js</strong> — 9 endpoints covering the delegation lifecycle.</li>
+            <li><strong>routes/scenarios.js</strong> — 5 demo scenarios + per-scenario reset for replay.</li>
+            <li><strong>routes/webhooks.js</strong> — read-only inspection of events fired during the demo.</li>
+            <li><strong>services/delegationMessageService.js</strong> — preamble sanitization + server-generated system block.</li>
+            <li><strong>db.js</strong> — schema for merchants, orders, payment_links, qr_sessions, delegations, webhook_events. Unique index <code>one_open_delegation_per_order</code>.</li>
+            <li><strong>assignTrustTier()</strong> — T1–T4 tier computed server-side from KYC, MCC, tenure, risk flags. <strong>Never client-supplied.</strong></li>
+          </ul>
+        </div>
+
+        <div class="text-col">
+          <h2>Frontend (src/)</h2>
+          <ul style="gap:0.5cqw">
+            <li><strong>App.jsx</strong> — toggles between ScenarioLauncher and DemoFlow.</li>
+            <li><strong>DemoFlow.jsx</strong> — orchestrates the 5 steps for a chosen scenario.</li>
+            <li><strong>EntryCheckout · EntryQRLanding · EntryPaymentLink</strong> — the three entry surfaces.</li>
+            <li><strong>DelegationCompose · WhatsAppPreview · ApproverPage · StatusPage</strong> — the delegation UI.</li>
+            <li><strong>TrustPanel.jsx</strong> — advisory panel, tier-adaptive.</li>
+            <li><strong>HandshakePanel.jsx</strong> — the "Under the Hood" developer panel visible on every step.</li>
+            <li><strong>WebhookLog.jsx</strong> — fixed bottom panel showing webhook events as they fire.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>One primitive, not three parallel features.</strong> The delegation table and state machine are shared across all entry points. Entry point is a field, not a code path.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 9: Architecture · Delegations table schema
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Architecture · 2 of 5</div>
+          <h1>Delegations table</h1>
+          <p>One row per delegation. Bound to an existing <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">order_id</code>. State machine fields alongside audit fields.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 9</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1.5fr 1fr; gap:2.4cqw">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Column</th><th>Type</th><th>Note</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>id</code><span class="key-marker">PK</span></td><td>varchar(32)</td><td class="note">deleg_abc123xyz</td></tr>
+              <tr><td><code>order_id</code><span class="key-marker uk">FK</span></td><td>varchar(32)</td><td class="note">Foreign key to orders</td></tr>
+              <tr><td><code>requestor_id</code></td><td>varchar(64)</td><td class="note">Merchant-provided customer id</td></tr>
+              <tr><td><code>approver_contact</code></td><td>varchar(20)</td><td class="note">+91 phone number</td></tr>
+              <tr><td><code>approver_name</code></td><td>varchar(64) · nullable</td><td class="note">Optional salutation label</td></tr>
+              <tr><td><code>preamble</code></td><td>text · nullable</td><td class="note">Sanitized, 140 char cap</td></tr>
+              <tr><td><code>status</code></td><td>enum</td><td class="note">created · shared · opened · paid · captured · declined · expired</td></tr>
+              <tr><td><code>advisory_tier</code></td><td>enum</td><td class="note">T1 · T2 · T3 · T4 — server-computed</td></tr>
+              <tr><td><code>entry_point</code></td><td>varchar(32)</td><td class="note">checkout_sdk · pos_qr · payment_link</td></tr>
+              <tr><td><code>payment_id</code></td><td>varchar(32) · nullable</td><td class="note">Set on capture</td></tr>
+              <tr><td><code>created_at · expires_at</code></td><td>bigint</td><td class="note">Unix epoch</td></tr>
+              <tr><td><code>ttl_seconds</code></td><td>int</td><td class="note">86400 web · 900 POS · inherits for Payment Link</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.9cqw">
+          <div class="callout">
+            <strong>Unique index:</strong> <code style="font-family:'JetBrains Mono',monospace">one_open_delegation_per_order</code>. A second open delegation on the same order returns <code>409 ORDER_HAS_OPEN_DELEGATION</code>.
+          </div>
+          <div class="callout">
+            <strong>Tier is never user-supplied.</strong> Derived from merchant KYC, MCC, tenure, and risk flags in <code>assignTrustTier()</code>. The client cannot coerce it.
+          </div>
+          <div class="callout">
+            <strong>TTL is a request-validity window</strong>, not a payment SLA. It governs how long the approver has to act — 24 h for web, 15 min for POS, inherits the Payment Link's own expiry.
+          </div>
+          <div class="callout dark">
+            <strong>What the merchant sees:</strong> nothing from this table directly. They get the webhook events; <code style="font-family:'JetBrains Mono',monospace; color:#FCA5A5">delegation_id</code> rides in <code style="font-family:'JetBrains Mono',monospace; color:#FCA5A5">notes</code> for reconciliation.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>One open delegation per order — enforced at the DB layer.</strong> Application code can't forget; the constraint is the invariant.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 10: Architecture · State machine
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Architecture · 3 of 5</div>
+          <h1>Delegation state machine</h1>
+          <p>Happy path across the top; declined and expired drop back to <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">created</code> so the requestor can redelegate.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 10</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1.4fr 1fr; gap:2.4cqw">
+        <div class="sm-canvas">
+          <!-- Happy path -->
+          <div class="sm-grid">
+            <div class="sm-state initial">—</div>
+            <div class="sm-arrow">create →</div>
+            <div class="sm-state happy">created</div>
+            <div class="sm-arrow">share →</div>
+            <div class="sm-state happy">shared</div>
+            <div class="sm-arrow">open →</div>
+          </div>
+          <div class="sm-grid" style="margin-top:1cqw; grid-template-columns: repeat(5, 1fr)">
+            <div class="sm-state happy">opened</div>
+            <div class="sm-arrow">pay →</div>
+            <div class="sm-state happy">paid</div>
+            <div class="sm-arrow">capture →</div>
+            <div class="sm-state terminal-good">captured ✓</div>
+          </div>
+
+          <!-- Unhappy paths -->
+          <div style="margin-top:2cqw; padding-top:1.4cqw; border-top:0.08cqw dashed #E5E7EB">
+            <div style="font-size:0.75cqw; color:#6B7280; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; margin-bottom:0.8cqw">Unhappy paths (from shared or opened)</div>
+            <div class="sm-grid" style="grid-template-columns: repeat(5, 1fr); gap:1cqw 0.4cqw">
+              <div class="sm-arrow" style="text-align:left; font-size:0.78cqw">approver declines</div>
+              <div class="sm-arrow">→</div>
+              <div class="sm-state terminal-bad">declined</div>
+              <div class="sm-arrow">redelegate →</div>
+              <div class="sm-state happy">created <span style="font-size:0.65cqw; opacity:0.75">(new row)</span></div>
+
+              <div class="sm-arrow" style="text-align:left; font-size:0.78cqw">TTL elapsed</div>
+              <div class="sm-arrow">→</div>
+              <div class="sm-state terminal-bad">expired</div>
+              <div class="sm-arrow">redelegate →</div>
+              <div class="sm-state happy">created <span style="font-size:0.65cqw; opacity:0.75">(new row)</span></div>
+
+              <div class="sm-arrow" style="text-align:left; font-size:0.78cqw">payment fails</div>
+              <div class="sm-arrow">→</div>
+              <div class="sm-state happy">opened <span style="font-size:0.65cqw; opacity:0.75">(retryable)</span></div>
+              <div class="sm-arrow" style="grid-column:span 2; text-align:left">approver can pick another method</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.9cqw">
+          <div class="callout">
+            <strong>Transitions and webhooks</strong>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.78cqw; line-height:1.7; margin-top:0.5cqw; color:#334155">
+              · → created <span style="color:#A855F7">order.delegation_requested</span><br>
+              created → shared <span style="color:#6B7280">(no webhook)</span><br>
+              shared → opened <span style="color:#6B7280">(no webhook)</span><br>
+              opened → paid → captured <span style="color:#22C55E">order.delegation_approved · payment.captured · order.paid</span><br>
+              → declined <span style="color:#A855F7">order.delegation_declined</span><br>
+              → expired <span style="color:#A855F7">order.delegation_expired</span>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Redelegate</strong> spawns a new delegation row for a different approver. The original row is terminal; history is preserved.
+          </div>
+          <div class="callout">
+            <strong>Payment failure is not a delegation state.</strong> A failed UPI auth keeps the delegation at <code>opened</code> — the approver retries with another method.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Decline and expiry revert the order to <code>created</code>.</strong> The requestor can try again — the delegation primitive is decoupled from the merchant's order lifecycle.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 11: Architecture · API endpoint inventory
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Architecture · 4 of 5</div>
+          <h1>Delegation API — nine endpoints</h1>
+          <p>New namespace <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">/v1/delegations</code>. One per state transition; <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">redelegate</code> handles the fork case.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 11</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1fr; gap:1.5cqw">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th style="width:6cqw">Method</th><th style="width:22cqw">Path</th><th>Purpose</th><th style="width:12cqw">State transition</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations</code></td><td>Create a delegation bound to an order_id. Server assigns tier. Enforces one-open-per-order.</td><td><code>— → created</code></td></tr>
+              <tr><td><span class="method get">GET</span></td><td><code>/v1/delegations/:id</code></td><td>Fetch with full context. Auto-expires if TTL passed. Re-renders system block server-side.</td><td class="note">read</td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/share</code></td><td>Mark shared. Records the channels used (whatsapp / sms).</td><td><code>created → shared</code></td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/open</code></td><td>Approver opened the approval link.</td><td><code>shared → opened</code></td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/pay</code></td><td>Approver selected a payment method. Hands off to standard Razorpay payment rail.</td><td><code>opened → paid</code></td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/capture</code></td><td>Payment succeeded. Closes the delegation.</td><td><code>paid → captured</code></td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/fail</code></td><td>Payment attempt failed (retryable). State stays at <code>opened</code>.</td><td class="note">retryable</td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/decline</code></td><td>Approver declined. Order reverts to <code>created</code>.</td><td><code>* → declined</code></td></tr>
+              <tr><td><span class="method post">POST</span></td><td><code>/v1/delegations/:id/redelegate</code></td><td>Closed delegation spawns a new one for a different approver.</td><td><code>declined|expired → new created</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Only <code>POST /v1/delegations</code> creates rows.</strong> Every other endpoint operates on an existing delegation — that's the invariant that makes rate-limiting and audit clean.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 12: Architecture · Webhook contract
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Architecture · 5 of 5</div>
+          <h1>Webhook contract</h1>
+          <p>Four new delegation events. The payment result fires the same two events as direct payments — which is why merchants need no integration work.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 12</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1fr; gap:1.3cqw">
+        <div>
+          <div style="font-size:0.8cqw; color:#6B7280; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; margin-bottom:0.7cqw">New delegation lifecycle events</div>
+          <div class="event-grid">
+            <div class="event-card">
+              <span class="event-name">order.delegation_requested</span>
+              Fires on delegation create. Payload carries <code>delegation.id</code>, <code>status: PENDING</code>, <code>order.id</code>.
+              <div class="event-note">Lets the merchant reserve inventory or mark the order as awaiting a third-party approval.</div>
+            </div>
+            <div class="event-card">
+              <span class="event-name">order.delegation_approved</span>
+              Fires when the approver submits payment and Razorpay authorizes it. Precedes <code>payment.captured</code>.
+              <div class="event-note">Confirms the delegation resolved positively. Optional for merchants.</div>
+            </div>
+            <div class="event-card">
+              <span class="event-name">order.delegation_declined</span>
+              Fires when the approver declines. Order reverts to <code>created</code>.
+              <div class="event-note">Merchant can release held inventory or notify the buyer.</div>
+            </div>
+            <div class="event-card">
+              <span class="event-name">order.delegation_expired</span>
+              Fires when TTL elapses without an approver decision. Order reverts to <code>created</code>.
+              <div class="event-note">Symmetrical to <code>declined</code> from the merchant's point of view.</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:0.8cqw; color:#6B7280; text-transform:uppercase; letter-spacing:0.08em; font-weight:700; margin-bottom:0.7cqw">Standard payment events — identical to direct payments</div>
+          <div class="event-grid">
+            <div class="event-card standard">
+              <span class="event-name">payment.captured</span>
+              Standard Razorpay event. Payload is identical to direct-payment capture except <code>notes</code> carries <code>delegation_id</code> for optional reconciliation.
+              <div class="event-note">Merchant's existing capture handler fires unchanged.</div>
+            </div>
+            <div class="event-card standard">
+              <span class="event-name">order.paid</span>
+              Standard Razorpay event. Order transitions to <code>paid</code> exactly as in a direct payment.
+              <div class="event-note">This is what fulfillment keys off — no handler change needed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>The last two events are the adoption property.</strong> A merchant who never registers the new delegation events still receives the payment as a normal capture. Delegation awareness is additive, not required.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 13: Condensed · Entry B (QR flow)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Other flows · QR (Entry B)</div>
+          <h1>In-store — dynamic and static QR</h1>
+          <p>Same primitive, different entry. The QR encodes a Razorpay URL — not a <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">upi://</code> deep-link — so the landing page can offer "Ask Someone to Pay" alongside "Pay now".</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 13</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1fr 1.15fr; gap:2.4cqw; align-items: start">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.4cqw">
+          <!-- Meera at restaurant (T2, dynamic QR) -->
+          <div style="display:flex; flex-direction:column; gap:0.6cqw">
+            <div class="mock-label">Scenario 2 · Dynamic QR · T2</div>
+            <div class="phone" style="width:100%; max-width:13.5cqw; justify-self:center">
+              <div class="phone-screen">
+                <div class="app">
+                  <div class="mock-topbar">
+                    <div class="brand" style="font-size:0.72cqw; color:rgba(255,255,255,0.8); font-weight:500">rzp.io/q/bombay_canteen/ord_a1b</div>
+                    <div style="font-size:0.55cqw; color:#1CA672; font-weight:700">● SECURE</div>
+                  </div>
+                  <div class="mock-body" style="gap:0.6cqw">
+                    <div class="mock-merchant">The Bombay Canteen <span class="mock-verified-badge">VERIFIED</span></div>
+                    <div class="mock-big-amount">₹2,400</div>
+                    <div style="font-size:0.65cqw; color:#6B7280">Table bill · Dine-in</div>
+                    <div class="mock-trust" style="background:#EFF6FF; border-color:#93C5FD">
+                      <div class="trust-row" style="color:#1D4ED8"><span class="trust-icon" style="color:#1E40AF">●</span><strong>T2 · Strong support</strong></div>
+                      <div class="trust-row" style="color:#1D4ED8"><span class="trust-icon" style="color:#1E40AF">✓</span>Category · Restaurants</div>
+                      <div class="trust-row" style="color:#1D4ED8"><span class="trust-icon" style="color:#1E40AF">✓</span>On Razorpay 3+ years</div>
+                    </div>
+                    <div class="mock-btn-row" style="margin-top:auto">
+                      <div class="mock-btn-secondary">Pay now</div>
+                      <div class="mock-btn-primary">Ask Someone</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Rohan at kirana (T3, static QR) -->
+          <div style="display:flex; flex-direction:column; gap:0.6cqw">
+            <div class="mock-label">Scenario 3 · Static QR · T3</div>
+            <div class="phone" style="width:100%; max-width:13.5cqw; justify-self:center">
+              <div class="phone-screen">
+                <div class="app">
+                  <div class="mock-topbar">
+                    <div class="brand" style="font-size:0.72cqw; color:rgba(255,255,255,0.8); font-weight:500">rzp.io/q/sharma_general</div>
+                    <div style="font-size:0.55cqw; color:#1CA672; font-weight:700">● SECURE</div>
+                  </div>
+                  <div class="mock-body" style="gap:0.6cqw">
+                    <div class="mock-merchant">Sharma General Store</div>
+                    <div class="mock-label">Amount</div>
+                    <div class="mock-big-amount" style="font-size:1.6cqw">₹850 <span style="font-size:0.7cqw; color:#9CA3AF; font-weight:500">(enter)</span></div>
+                    <div class="mock-trust" style="background:#F9FAFB; border-color:#D1D5DB">
+                      <div class="trust-row" style="color:#374151"><span class="trust-icon" style="color:#6B7280">●</span><strong>T3 · Neutral</strong></div>
+                      <div class="trust-row" style="color:#6B7280; font-size:0.65cqw">Verified merchant. No category or tenure context available.</div>
+                    </div>
+                    <div class="mock-btn-row" style="margin-top:auto">
+                      <div class="mock-btn-secondary">Pay now</div>
+                      <div class="mock-btn-primary">Ask Someone</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.9cqw">
+          <div class="callout">
+            <strong>QR encodes a Razorpay URL, not <code>upi://</code>.</strong> Tradeoff: loses one-tap UPI app launch; gains a Razorpay-owned landing surface that can offer "Ask Someone to Pay" alongside "Pay now".
+          </div>
+          <div class="callout">
+            <strong>No POS firmware change.</strong> v1 scope explicitly excludes terminal UI updates. Cashier workflow unchanged; the delegation flow lives entirely on the customer's phone after scanning.
+          </div>
+          <div class="callout">
+            <strong>TTL: 15 min</strong> for in-store dynamic QR sessions (matches terminal countdown). Static QRs are perennial; TTL applies once a delegation is created.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Depends on re-provisioning Razorpay's dynamic and static QR payloads to <code>rzp.io/q/...</code></strong> — platform-side change, not a firmware one. Flagged as a BLOCKER for Entry B.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 14: Condensed · Entry C (Payment Link / B2B)
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Other flows · Payment Link (Entry C)</div>
+          <h1>B2B — accountant forwards to CFO</h1>
+          <p>Payment Links are already URL-shareable. Adding "Ask Someone to Pay" on the payment page is a clean extension — the same primitive covers family and enterprise use cases.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 14</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 17.5cqw 1fr; gap:3cqw; align-items: start">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="app">
+              <div class="mock-topbar">
+                <div class="brand" style="font-size:0.72cqw; color:rgba(255,255,255,0.8); font-weight:500">rzp.io/i/plink_zoho_789</div>
+                <div style="font-size:0.55cqw; color:#1CA672; font-weight:700">● SECURE</div>
+              </div>
+              <div class="mock-body" style="gap:0.7cqw">
+                <div class="mock-merchant">Zoho Corporation <span class="mock-verified-badge">VERIFIED</span></div>
+                <div class="mock-big-amount">₹17,700</div>
+                <div style="font-size:0.7cqw; color:#6B7280">Invoice INV-2026-0412 · Monthly subscription</div>
+                <div class="mock-trust">
+                  <div class="trust-row"><span class="trust-icon">✓</span><strong>T1 · Very strong support</strong></div>
+                  <div class="trust-row"><span class="trust-icon">✓</span>Enterprise KYC verified</div>
+                  <div class="trust-row"><span class="trust-icon">✓</span>Category: SaaS &amp; Subscriptions</div>
+                  <div class="trust-row"><span class="trust-icon">✓</span>On Razorpay 7+ years</div>
+                </div>
+                <div class="mock-btn-row" style="margin-top:auto">
+                  <div class="mock-btn-secondary">Pay now</div>
+                  <div class="mock-btn-primary">Ask Someone</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.9cqw">
+          <div class="callout">
+            <strong>Anita (accountant) taps "Ask Someone to Pay"</strong>, enters Suresh's (CFO) phone, shares via WhatsApp. Suresh opens, sees Zoho's T1 trust panel, pays by netbanking. Zoho receives <code>payment.captured</code> + <code>order.paid</code>.
+          </div>
+          <div class="callout">
+            <strong>Same primitive. Different use case.</strong> The delegation table doesn't care whether the requestor is a teenager asking a parent or an accountant forwarding to a CFO.
+          </div>
+          <div class="callout">
+            <strong>TTL:</strong> inherits the Payment Link's own <code style="font-family:'JetBrains Mono',monospace">expire_by</code>. B2B invoices often have longer windows than 24h — the delegation respects the merchant's expiry.
+          </div>
+          <div class="callout dark">
+            <strong>This is why the primitive is general.</strong> Scoping to "family payments" would have missed the invoice-approval use case that Payment Links already see today. One primitive covers both.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Payment Links are the cleanest integration</strong> — they're already URL-shareable. The "Ask Someone" button is additive on the existing payment page.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 15: Advisory tier gradient
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Advisory gradient · supporting feature</div>
+          <h1>Tier is additive context, not a gate</h1>
+          <p>Tier is computed server-side from merchant signals Razorpay already has. It shapes the approver page — it doesn't decide who gets to initiate a delegation.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 15</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1fr">
+        <div class="tier-grid">
+          <div class="tier-card tier-t1">
+            <div class="tier-head">
+              <span class="tier-name">T1</span>
+              <span class="tier-sub">Very strong</span>
+            </div>
+            <div class="tier-criteria">KYC approved · line_items on order</div>
+            <ul>
+              <li>Merchant name + ✓ Verified badge</li>
+              <li>Full line-item summary</li>
+              <li>MCC category label</li>
+              <li>Tenure on Razorpay</li>
+            </ul>
+          </div>
+          <div class="tier-card tier-t2">
+            <div class="tier-head">
+              <span class="tier-name">T2</span>
+              <span class="tier-sub">Strong</span>
+            </div>
+            <div class="tier-criteria">KYC approved · MCC known · tenure ≥ 365d</div>
+            <ul>
+              <li>Merchant name + ✓ Verified badge</li>
+              <li class="off">Line items — not in order</li>
+              <li>MCC category label</li>
+              <li>Tenure on Razorpay</li>
+            </ul>
+          </div>
+          <div class="tier-card tier-t3">
+            <div class="tier-head">
+              <span class="tier-name">T3</span>
+              <span class="tier-sub">Neutral</span>
+            </div>
+            <div class="tier-criteria">Verified merchant · fallback tier</div>
+            <ul>
+              <li>Merchant name + ✓ Verified badge</li>
+              <li class="off">Line items</li>
+              <li class="off">Category</li>
+              <li class="off">Tenure (not surfaced)</li>
+            </ul>
+          </div>
+          <div class="tier-card tier-t4">
+            <div class="tier-head">
+              <span class="tier-name">T4</span>
+              <span class="tier-sub">Caution</span>
+            </div>
+            <div class="tier-criteria">Risk-flagged OR tenure &lt; 30d OR unverified</div>
+            <ul>
+              <li>⚠ Warning banner on approval page</li>
+              <li>Merchant name (no adjectives)</li>
+              <li>Reason code from a fixed list</li>
+              <li>Approver can still pay — it's advisory</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1cqw; margin-top:1.2cqw">
+          <div class="callout">
+            <strong>Eligibility to initiate is gated upstream.</strong> Merchants with tenure &lt; 30 days or high risk flag don't see the "Ask Someone" button at all. T4 exists for in-flight signal changes, not for gating entry.
+          </div>
+          <div class="callout">
+            <strong>Server-assigned, never client-supplied.</strong> The frontend renders what <code>assignTrustTier()</code> returns. A malicious caller cannot coerce a higher tier.
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>The tier is a graduated honesty signal</strong> — Razorpay shows less confidence when it has less data, rather than hiding the fact. The primary trust vector is still interpersonal: the approver knows the requestor.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 16: Fraud & integrity mechanisms
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Integrity · what makes this safe to ship</div>
+          <h1>Fraud &amp; abuse mitigations</h1>
+          <p>The primary risk vector is a malicious requestor using the preamble to impersonate Razorpay or misdirect the approver. Controls are layered at sanitization, rendering, and platform levels.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 16</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body two-col">
+        <div class="text-col">
+          <h2>Anti-spoofing on the outgoing message</h2>
+          <ul>
+            <li><strong>Server-side sanitization</strong> — URLs, phone-number-shaped strings, Unicode bidi overrides (U+202A–E, U+2066–9), and homoglyphs of "Razorpay" all stripped before concatenation.</li>
+            <li><strong>Hard separator</strong> — two newlines between preamble and system block. System block always starts with the literal header.</li>
+            <li><strong>URL locking</strong> — exactly one URL allowed in the outgoing message: the canonical <code>rzp.io/r/{id}</code>. Anything else is removed.</li>
+            <li><strong>Length cap</strong> — preamble hard-capped at 140 chars; requests over return HTTP 400. Full message engineered to fit 2 GSM-7 segments.</li>
+            <li><strong>DLT template gating</strong> — SMS sends go through pre-registered DLT templates; tampering is rejected at carrier ingress.</li>
+          </ul>
+        </div>
+
+        <div class="text-col">
+          <h2>Primitive-level integrity</h2>
+          <ul>
+            <li><strong>One open delegation per order</strong> — DB-level unique constraint. Second attempt returns <code>409 ORDER_HAS_OPEN_DELEGATION</code>.</li>
+            <li><strong>Server-owned tier assignment</strong> — tier comes from Razorpay's merchant data pipeline; client cannot coerce it.</li>
+            <li><strong>Eligibility gated upstream</strong> — merchants with tenure &lt; 30 days or high risk flag can't initiate at all; the button doesn't render.</li>
+            <li><strong>System block regenerated on every open</strong> — no trust via link inspection; the approval page re-derives from fresh merchant data.</li>
+            <li><strong>No requestor-name line on the approval page</strong> — identity rides the delivery channel; Razorpay does not fabricate one.</li>
+            <li><strong>Phased by trust tier</strong> — proposed v1 rollout is to Razorpay-selected merchants only; biometric step-up and CAPTCHA are deferred scale-up levers, not v1 requirements.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>None of these controls rely on user vigilance.</strong> They're structural — the preamble literally cannot reproduce the system block format, and a second delegation on the same order literally cannot be created.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 17: Error & unhappy paths
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Unhappy paths · handled in the prototype</div>
+          <h1>What happens when things don't go clean</h1>
+          <p>Declines, expiries, mid-flow payment failures — each has a state machine response and a webhook. The redelegate path keeps the order recoverable.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 17</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body" style="grid-template-columns: 1fr; align-content:center">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th style="width:14cqw">Case</th><th>What happens</th><th style="width:16cqw">State transition</th><th style="width:14cqw">Webhook</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Approver declines</strong></td>
+                <td>Approver taps Decline (optional reason captured). Order reverts to <code>created</code>; requestor can redelegate to someone else.</td>
+                <td><code>* → declined</code></td>
+                <td><code>order.delegation_declined</code></td>
+              </tr>
+              <tr>
+                <td><strong>Delegation expires</strong></td>
+                <td>TTL elapses with no approver action. Landing page shows "This request has expired." Requestor can redelegate with a new TTL.</td>
+                <td><code>* → expired</code></td>
+                <td><code>order.delegation_expired</code></td>
+              </tr>
+              <tr>
+                <td><strong>Payment fails mid-flow</strong></td>
+                <td>Approver closes the UPI app without confirming, or the bank rejects. Delegation state stays at <code>opened</code>; approver can retry with a different method.</td>
+                <td><code>opened</code> (unchanged)</td>
+                <td class="note">none from delegation side (standard <code>payment.failed</code> fires)</td>
+              </tr>
+              <tr>
+                <td><strong>Both channels tapped</strong></td>
+                <td>Approver opens WhatsApp link, starts paying, then taps the SMS link. Second tap sees <code>status=processing</code> and no-ops.</td>
+                <td><code>opened</code> (unchanged)</td>
+                <td class="note">none</td>
+              </tr>
+              <tr>
+                <td><strong>Requestor cancels</strong></td>
+                <td>Requestor decides to pay directly or asks someone else. Self-decline via the same endpoint. Order reverts to <code>created</code>.</td>
+                <td><code>* → declined</code></td>
+                <td><code>order.delegation_declined</code></td>
+              </tr>
+              <tr>
+                <td><strong>Redelegate</strong></td>
+                <td>From a <code>declined</code> or <code>expired</code> delegation, spawn a new one for a different approver. Original row is terminal; history preserved.</td>
+                <td><code>→ new created</code></td>
+                <td><code>order.delegation_requested</code></td>
+              </tr>
+              <tr>
+                <td><strong>Duplicate attempt</strong></td>
+                <td>Creating a second open delegation on an order that already has one. DB unique constraint rejects.</td>
+                <td class="note">no state change</td>
+                <td><code>HTTP 409</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <div class="annotation-marker">→</div>
+        <div class="annotation-text">
+          <strong>Declined and expired are recoverable</strong> via redelegate — the order stays alive. Payment failures don't burn the delegation; the approver just picks another method.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       SLIDE 18: Dependencies + what we don't know
+       ============================================================ -->
+  <main class="slide">
+    <div class="slide-inner">
+      <header class="slide-header">
+        <div>
+          <div class="eyebrow">Dependencies · what blocks production</div>
+          <h1>Key dependencies for production</h1>
+          <p>The prototype is complete. Taking this to production would depend on the items below — grouped by owning team. Full matrix in <code style="font-family:'JetBrains Mono',monospace; font-size:0.9em; color:#528FF0">docs/DEPENDENCIES_AND_CLARIFICATIONS.md</code>.</p>
+        </div>
+        <div class="slide-meta">
+          <div class="num">Slide 18</div>
+          <div>Ask Others to Pay</div>
+        </div>
+      </header>
+
+      <div class="slide-body full-body two-col" style="align-content:center">
+        <div class="text-col">
+          <h2>Platform &amp; infra</h2>
+          <ul>
+            <li><strong>Webhooks team</strong> — register the 4 new <code>order.delegation_*</code> events and commit payload schema.</li>
+            <li><strong>API gateway</strong> — route <code>/v1/delegations</code> namespace; rate-limit bucket; auth middleware.</li>
+            <li><strong>Short URL</strong> — allocate <code>rzp.io/r/*</code> and <code>rzp.io/q/*</code> namespaces.</li>
+            <li><strong>Dynamic/static QR re-provisioning</strong> — migrate payload from <code>upi://</code> to <code>rzp.io/q/...</code> URLs.</li>
+            <li><strong>Checkout SDK</strong> — feature-flagged "Ask Someone to Pay" button; compose modal (Razorpay-hosted vs embedded — pending decision).</li>
+          </ul>
+
+          <h2 style="margin-top:1.4cqw">Risk &amp; data</h2>
+          <ul>
+            <li><strong>Fraud/risk score API</strong> — exact field name + endpoint for T4 warning overlay.</li>
+            <li><strong>Merchant age exposure</strong> — propagate <code>merchant.created_at</code> to all three entry gates.</li>
+            <li><strong>Merchant trust data pipeline</strong> — KYC, MCC, tenure surfaced to approver page.</li>
+          </ul>
+        </div>
+
+        <div class="text-col">
+          <h2>Messaging &amp; comms</h2>
+          <ul>
+            <li><strong>DLT template approval</strong> — 4 SMS templates (T1–T4), 7–14d carrier approval.</li>
+            <li><strong>WhatsApp Business API templates</strong> — 4 WABA templates, 1–3d approval.</li>
+            <li><strong>WABA ownership</strong> — single platform-owned WABA (proposed).</li>
+            <li><strong>SMS sender ID &amp; brand name</strong> — DLT-approved.</li>
+          </ul>
+
+          <h2 style="margin-top:1.4cqw">Legal &amp; regulatory (parallel track)</h2>
+          <ul>
+            <li><strong>NPCI opinion</strong> — formal confirmation that merchant-anchored delegation is distinct from the banned P2P collect. Does not gate engineering; gates production launch.</li>
+            <li><strong>Chargeback T&amp;C</strong> — liability allocation between approver and merchant.</li>
+            <li><strong>DPDP / DPO sign-off</strong> — data classification and retention.</li>
+            <li><strong>Approval page wording</strong> — RBI consumer-protection review.</li>
+          </ul>
+
+          <h2 style="margin-top:1.4cqw">Open empirical questions</h2>
+          <ul>
+            <li><strong>Adoption</strong> — will users choose this over phone-call-plus-transfer?</li>
+            <li><strong>Approval rate</strong> — what % of shared delegations get approved?</li>
+            <li><strong>Completion rate</strong> — what % of approvals result in captured payments?</li>
+            <li><strong>Time to resolution</strong> — share to paid, end-to-end.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>

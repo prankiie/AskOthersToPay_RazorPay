@@ -1,0 +1,25 @@
+{
+  "name": "ask-others-to-pay-backend",
+  "version": "0.1.0",
+  "description": "RazorPay Ask Others to Pay MVP Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "razorpay",
+    "upi",
+    "payment",
+    "p2p"
+  ],
+  "author": "RazorPay",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}
