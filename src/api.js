@@ -46,6 +46,9 @@ export const failPayment = (id) =>
 export const declineDelegation = (id, reason) =>
   api(`/delegations/${id}/decline`, { method: 'POST', body: JSON.stringify({ reason }) });
 
+export const redelegate = (id, body) =>
+  api(`/delegations/${id}/redelegate`, { method: 'POST', body: JSON.stringify(body) });
+
 // ── Webhooks ──────────────────────────────────────────────────────────────
 
 export const getWebhookEvents = (orderId) =>

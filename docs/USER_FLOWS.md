@@ -11,7 +11,7 @@ For the technical mechanics (state machine, API shape, TTLs), see [PAYMENT_FLOW_
 Every scenario walks the same five-step journey. Only the entry surface, merchant, amount, and advisory tier differ.
 
 1. **Entry** — the requestor reaches a Razorpay payment surface (Checkout, POS QR, or Payment Link) and sees "Ask Someone to Pay" alongside the usual pay buttons.
-2. **Compose** — the requestor fills in the approver's phone, optionally their name, and an optional 140-char message. WhatsApp + SMS are both on by default.
+2. **Compose** — the requestor fills in the approver's phone and an optional 140-char message. WhatsApp + SMS are both on by default.
 3. **Share / Preview** — the requestor sees what their approver will receive: a WhatsApp-style preview with the preamble + tamper-proof system block (merchant, amount, verified badge where applicable, approval URL, expiry).
 4. **Approver page** — the approver opens `rzp.io/r/{delegation_id}`, sees the merchant trust panel (tier-adaptive), reads the note, picks a payment method, pays.
 5. **Status** — the result screen shows the outcome and the webhook events the merchant received.
@@ -72,7 +72,7 @@ Suresh (CFO) opens the link, sees Zoho's T1 trust panel (KYC verified enterprise
 
 **Entry:** A (Web Checkout)  **Advisory tier:** T4 — Caution advised  **Amount:** ₹12,999 at QuickDeals Online
 
-Vikram initiates a delegation at QuickDeals Online for a phone. When his mother opens the approval link, Razorpay's trust panel shows the **T4 advisory**: Razorpay has limited information to share about this merchant right now, and she should check with Vikram before paying. She can still pay if she chooses — but the panel is honest about the confidence level.
+Vikram initiates a delegation at QuickDeals Online for a new phone (₹12,999). He shares the link with his mother, Sunita. When she opens it, the T4 advisory banner reads: *"Razorpay has limited verification signals for this merchant right now. Please confirm this request with Vikram before paying."* The panel shows the base merchant info (name, status) but without tenure, category, KYC badge, or line items. She can still pay — the advisory is honest about confidence, not blocking.
 
 **What this demonstrates:** The advisory gradient at its lowest tier. Eligibility to initiate a delegation is gated upstream — merchants must be verified and meet tenure minimums. T4 is the advisory level when a merchant that passed eligibility has less corroborating data, or when trust signals shift during an in-flight delegation. The approver is trusted to make the call with complete information.
 
@@ -81,7 +81,7 @@ Vikram initiates a delegation at QuickDeals Online for a phone. When his mother 
 ## Common edge cases the demo handles
 
 - **Decline** — on any scenario's approver page, tap "Decline." The approver can add a reason. Status moves to `declined`, the merchant receives `order.delegation_declined`, and the order status reverts to `created`.
-- **Redelegate** — a declined or expired delegation can spawn a new one for a different approver (API supports this; UI adds it on request).
+- **Redelegate** — a declined or expired delegation can spawn a new one for a different approver. The status screen exposes a "Redelegate" button that creates a fresh delegation bound to the same order.
 - **One open delegation per order** — DB-level unique constraint. Trying to create a second open delegation for the same order returns `409 ORDER_HAS_OPEN_DELEGATION`.
 - **Expiry** — delegations have a TTL (24h for web entries, 15min for POS, inherits the link's expiry for payment links). Expired delegations can't be opened or paid; merchant receives `order.delegation_expired`.
 

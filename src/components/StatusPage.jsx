@@ -5,11 +5,13 @@ import { theme } from '../theme';
  * StatusPage — final result after payment/decline/expiry.
  * Shows to both requestor and approver.
  */
-export default function StatusPage({ delegation, order, merchant, scenario, paymentMethod, onStartOver }) {
+export default function StatusPage({ delegation, order, merchant, scenario, paymentMethod, onStartOver, onRedelegate }) {
   const s = scenario;
   const amount = (order.amount / 100).toLocaleString('en-IN');
   const isPaid = delegation.state === 'paid';
   const isDeclined = delegation.state === 'declined';
+  const isExpired = !isPaid && !isDeclined;
+  const canRedelegate = (isDeclined || isExpired) && typeof onRedelegate === 'function';
 
   const methodLabels = { upi: 'UPI', card: 'Card', netbanking: 'Net Banking', wallet: 'Wallet' };
 
@@ -90,13 +92,28 @@ export default function StatusPage({ delegation, order, merchant, scenario, paym
         </div>
       </div>
 
-      {/* Start over */}
-      <div style={{ marginTop: 20, textAlign: 'center' }}>
+      {/* Action buttons */}
+      <div style={{ marginTop: 20, textAlign: 'center', display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {canRedelegate && (
+          <button
+            onClick={() => onRedelegate(delegation.id)}
+            style={{
+              padding: '12px 24px', borderRadius: theme.radius,
+              background: theme.accent, color: '#fff', fontSize: 14, fontWeight: 600,
+            }}
+            title="Spawn a new delegation for a different approver on the same order"
+          >
+            Redelegate to someone else
+          </button>
+        )}
         <button
           onClick={onStartOver}
           style={{
-            padding: '12px 32px', borderRadius: theme.radius,
-            background: theme.secondary, color: '#fff', fontSize: 14, fontWeight: 500,
+            padding: '12px 24px', borderRadius: theme.radius,
+            background: canRedelegate ? theme.card : theme.secondary,
+            color: canRedelegate ? theme.textSecondary : '#fff',
+            fontSize: 14, fontWeight: 500,
+            border: canRedelegate ? `1px solid ${theme.border}` : 'none',
           }}
         >
           &larr; Try Another Scenario

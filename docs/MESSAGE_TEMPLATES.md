@@ -171,7 +171,7 @@ function pickByDataAvailability(merchant):
   return T3
 ```
 
-`TENURE_MIN` is defined in `src/backend/config/trust.js` and reviewed quarterly by Trust & Safety. The `razorpay_internal_fraud_score_is_high` field is a dependency on the Razorpay risk team (see DEPENDENCIES_AND_CLARIFICATIONS.md for exact field name and integration point).
+`TENURE_MIN` is defined in `src/backend/config/trust.js` and would need periodic Razorpay Trust & Safety review to stay calibrated. The `razorpay_internal_fraud_score_is_high` field is a dependency on the Razorpay risk team (see DEPENDENCIES_AND_CLARIFICATIONS.md for exact field name and integration point).
 
 ## Anti-spoofing
 
@@ -207,7 +207,7 @@ These are exactly the class of feature that invents data the system does not hav
 
 ## Review cadence for template changes
 
-Every change requires:
+Before any template change ships, a Razorpay implementing team would need:
 
 1. Legal review (DLT template registration, consumer protection language).
 2. Trust & Safety review (anti-spoofing, warning wording).

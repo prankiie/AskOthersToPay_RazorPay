@@ -28,6 +28,7 @@ import WebhookLog from './WebhookLog';
 export default function DemoFlow({ scenario, onBack }) {
   const [step, setStep] = useState('entry');
   const [delegationResult, setDelegationResult] = useState(null);
+  const [redelegatingFrom, setRedelegatingFrom] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState(null);
   const [customAmount, setCustomAmount] = useState(null);
   const [error, setError] = useState(null);
@@ -52,16 +53,26 @@ export default function DemoFlow({ scenario, onBack }) {
   async function handleCompose(formData) {
     try {
       setError(null);
-      const res = await api.createDelegation({
-        order_id: s.order.id,
-        approver_phone: formData.approverPhone || s.approver.phone,
-        approver_name: formData.approverName || s.approver.name,
-        requestor_phone: s.requestor.phone,
-        preamble_text: formData.preamble,
-        entry_point: s.entry_point,
-        channel_whatsapp: formData.channelWhatsApp,
-        channel_sms: formData.channelSMS,
-      });
+      let res;
+      if (redelegatingFrom) {
+        res = await api.redelegate(redelegatingFrom, {
+          approver_phone: formData.approverPhone || s.approver.phone,
+          approver_name: formData.approverName || s.approver.name,
+          preamble_text: formData.preamble,
+        });
+        setRedelegatingFrom(null);
+      } else {
+        res = await api.createDelegation({
+          order_id: s.order.id,
+          approver_phone: formData.approverPhone || s.approver.phone,
+          approver_name: formData.approverName || s.approver.name,
+          requestor_phone: s.requestor.phone,
+          preamble_text: formData.preamble,
+          entry_point: s.entry_point,
+          channel_whatsapp: formData.channelWhatsApp,
+          channel_sms: formData.channelSMS,
+        });
+      }
       setDelegationResult(res.data);
 
       // Mark as shared
@@ -118,6 +129,11 @@ export default function DemoFlow({ scenario, onBack }) {
     } catch (e) {
       setError(e.message);
     }
+  }
+
+  function handleRedelegate(delegationId) {
+    setRedelegatingFrom(delegationId);
+    setStep('compose');
   }
 
   // ── Back navigation ────────────────────────────────────────────────
@@ -241,6 +257,7 @@ export default function DemoFlow({ scenario, onBack }) {
             scenario={s}
             paymentMethod={paymentMethod}
             onStartOver={onBack}
+            onRedelegate={handleRedelegate}
           />
         )}
 

@@ -1,6 +1,6 @@
 # Ask Others to Pay: Unified Payment Flow Mechanics for Razorpay
 
-**Scope:** Complete technical specification for Razorpay's "Ask Others to Pay" feature, unified across all entry points (Checkout SDK, POS QR, consumer scanner, payment links).
+**Scope:** Complete technical specification for Razorpay's "Ask Others to Pay" feature, unified across all entry points (Checkout SDK, POS QR, payment links).
 
 **Core Concept:** The "delegation" is the primitive — a Razorpay Order combined with a delegation record. The customer's entry point varies (web button, POS QR, static QR scan, payment link), but the downstream flow is identical.
 
@@ -70,12 +70,17 @@ All entry points converge to a single payment flow. Here's the canonical sequenc
          ▼
 ┌──────────────────────────────┐
 │ WEBHOOKS FIRE:              │
-│ • order.paid                │
-│ • order.delegation_approved │
+│ Standard (required):        │
 │ • payment.captured          │
+│ • order.paid                │
+│ Delegation lifecycle        │
+│ (opt-in):                   │
+│ • order.delegation_approved │
 │ Merchant fulfills order     │
 └──────────────────────────────┘
 ```
+
+> **Webhook integration note:** Existing merchant handlers for `payment.captured` and `order.paid` work unchanged — zero code change is required for existing integrations. The four `order.delegation_*` events (`requested / approved / declined / expired`) are **opt-in** for merchants who want to surface delegation state in their own UI (e.g., showing "Waiting for approval from Rajesh…" in an order dashboard). Merchants who ignore them lose nothing — the order still settles via the standard events.
 
 ### 1.2 Step-by-Step Walkthrough
 
@@ -172,8 +177,8 @@ Razorpay sends to merchant webhook endpoint:
 ```
 
 Also fires:
-- `order.delegation_approved` (NEW webhook event)
-- `payment.captured` (standard)
+- `payment.captured` (standard — existing merchant handlers work unchanged)
+- `order.delegation_approved` (NEW webhook event — **opt-in**; merchants subscribe only if they want to surface delegation state in their own UI. Ignoring it is safe; the order still settles via `order.paid` + `payment.captured`.)
 
 **API Reference:** [Webhooks - Razorpay Docs](https://razorpay.com/docs/webhooks/)
 
@@ -184,7 +189,7 @@ Also fires:
 
 ---
 
-## 2. Entry Points (4 Variants, Identical Downstream)
+## 2. Entry Points (3 Variants, Identical Downstream)
 
 All entry points create an order and trigger the unified flow above. Differences are **only** in order seeding and available context.
 
@@ -419,7 +424,7 @@ This section maps every system operation to real Razorpay APIs. Existing product
 - **Signature Verification:** X-Razorpay-Signature header (HMAC SHA256)
 - **Payload Structure:** `event`, `created_at`, `payload` (contains entity details)
 - **Documentation:** [Webhooks - Razorpay Docs](https://razorpay.com/docs/webhooks/)
-- **New Events Required:** `order.delegation_requested`, `order.delegation_approved`, `order.delegation_declined`, `order.delegation_expired`
+- **New Events (opt-in for merchants):** `order.delegation_requested`, `order.delegation_approved`, `order.delegation_declined`, `order.delegation_expired`. These are emitted for merchants who want to track delegation state in their own UI. Existing merchants who only subscribe to `payment.captured` + `order.paid` need zero code changes — their handlers work unchanged.
 
 #### UPI Intent
 - **Mechanism:** Deep link to UPI app (PhonePe, GPay, Paytm) with payment pre-filled
@@ -536,12 +541,14 @@ Response:
 - On payment success: shows confirmation + order tracking
 - On decline: shows decline confirmation + requestor notification
 
-**URL: `https://rzp.io/q/{order_id}` — Dynamic QR Landing (POS)**
+**URL: `https://rzp.io/q/{merchant_id}/{order_id}` — Dynamic QR Landing (POS)**
 - Hosted by Razorpay
 - Shows: amount, merchant name, "Pay Now" button, "Ask Someone to Pay" button
 - For this flow to work, dynamic QRs would need to resolve to this landing page rather than to direct `upi://` deeplinks
 
-#### New Webhook Events (NEW)
+#### New Webhook Events (NEW — opt-in for merchants)
+
+> These four events document delegation lifecycle state. They are **opt-in**: merchants subscribe only if they want to surface delegation progress in their own order dashboard or UI. Merchants who only subscribe to the existing `payment.captured` + `order.paid` events need zero integration changes — their handlers work unchanged and the order still settles via those standard events. The payloads below are for merchants who choose to consume them.
 
 **Event: `order.delegation_requested`**
 ```json
@@ -901,7 +908,7 @@ ALTER TABLE payments ADD COLUMN (
 
 **Not P2P because:** Merchant is integral to the flow; payment is for goods/services, not cash transfer.
 
-**NPCI Guidance:** Complies with merchant-facilitated collect rules (Oct 2025 ban applies to P2P Collect requests, not this model).
+**NPCI Guidance:** Compliance thesis; pending NPCI confirmation. The argument is that merchant-anchored delegation is not P2P collect (Oct 2025 ban applies to P2P Collect requests; merchant-facilitated collect is still allowed). Final clearance requires NPCI confirmation and Razorpay legal review.
 
 ### 10.2 Two-Factor Authentication (2FA)
 
@@ -1000,7 +1007,7 @@ POST /v1/delegations (Merchant backend on behalf of {requester_name})
 **T=1:30 — Delegation created, share sheet opens**
 
 ```
-Webhook to merchant: order.delegation_requested
+Webhook to merchant: order.delegation_requested  [opt-in — delegation lifecycle event; merchants who don't subscribe see nothing until the standard order.paid + payment.captured fire at capture time]
 {
   "event": "order.delegation_requested",
   "payload": {
@@ -1089,9 +1096,11 @@ Razorpay captures payment:
 POST /v1/payments/{payment_id}/capture
 ← status: captured
 
-Webhooks to merchant endpoint:
+Webhooks to merchant endpoint (standard events 1 & 3 are required and match
+existing Razorpay handlers — zero code change; event 2 is opt-in for merchants
+who want delegation-state visibility):
 
-1) payment.captured
+1) payment.captured  [standard — existing handler works unchanged]
 {
   "event": "payment.captured",
   "payload": {
@@ -1105,7 +1114,7 @@ Webhooks to merchant endpoint:
   }
 }
 
-2) order.delegation_approved
+2) order.delegation_approved  [opt-in — delegation lifecycle event]
 {
   "event": "order.delegation_approved",
   "payload": {
@@ -1116,7 +1125,7 @@ Webhooks to merchant endpoint:
   }
 }
 
-3) order.paid
+3) order.paid  [standard — existing handler works unchanged]
 {
   "event": "order.paid",
   "payload": {
@@ -1193,4 +1202,4 @@ Order #ORD123 is processing.
 
 **Document Version:** 2.0 — Unified Flow Architecture
 **Last Updated:** April 2026
-**Status:** Publication-Ready
+**Status:** Proposal — pending Razorpay legal review and NPCI confirmation
