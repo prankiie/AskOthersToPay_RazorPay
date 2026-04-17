@@ -18,13 +18,15 @@ When a delegated payment succeeds, Razorpay fires the same `payment.captured` an
 | B | In-store dynamic & static QR | Razorpay-hosted QR landing page (`rzp.io/q/{merchant_id}/{order_id}` dynamic; `rzp.io/q/{merchant_id}` static — concept) |
 | C | Payment Link | Merchant dashboard → Razorpay hosted page |
 
-v1 covers Razorpay merchants only. Non-Razorpay merchants are out of scope.
+The proposal's v1 covers Razorpay merchants only. Non-Razorpay merchants are out of scope.
 
 All three converge at: `rzp.io/r/{delegation_id}` → approver sees trust context → pays → webhook to merchant.
 
 ## Start here
 
-- **[docs/EXECUTIVE_SUMMARY.md](docs/EXECUTIVE_SUMMARY.md)** — One-page pitch: problem, solution, how it works (L0 architecture), why Razorpay, what was built, dependencies, open empirical questions
+- **[Ask Others to Pay — Walkthrough.pdf](Ask%20Others%20to%20Pay%20%E2%80%94%20Walkthrough.pdf)** — 18-slide visual walkthrough (problem, entry flows, architecture, dependencies)
+- **[Exec Summary.pdf](Exec%20Summary.pdf)** — 4-page one-pager version of the pitch
+- **[docs/EXECUTIVE_SUMMARY.md](docs/EXECUTIVE_SUMMARY.md)** — Same content as the exec summary PDF, in markdown
 
 ## Read order (for reviewers / deep context)
 
