@@ -2,19 +2,19 @@
 
 ## Grounding rule (read first)
 
-**We only use data we actually have.** We never infer relationships, tone, familiarity, language preference, or names. Specifically:
+**This spec uses only data Razorpay actually has.** Nothing about relationships, tone, familiarity, language preference, or names is inferred. Specifically:
 
-| We have | We do NOT have |
-|---------|----------------|
+| Available | Not available |
+|-----------|---------------|
 | Requester's name from their Razorpay/POP account (if authenticated) | The approver's name |
 | Approver's phone number (requester types or picks) | The approver's relationship to the requester (parent, spouse, friend, etc.) |
-| Phonebook label for the approver IF the requester uses the OS contact picker (raw string, uninterpreted) | What that label means semantically ("Papa" ≠ "father" for our purposes) |
+| Phonebook label for the approver IF the requester uses the OS contact picker (raw string, uninterpreted) | What that label means semantically ("Papa" ≠ "father" for the purposes of this system) |
 | Free-text note the requester types (optional, capped at 140 chars) | Tone register, language register, preferred salutation style |
-| Merchant data by tier (see PAYMENT_FLOW_MECHANICS.md §4) | Anything the merchant didn't send us |
+| Merchant data by tier (see PAYMENT_FLOW_MECHANICS.md §4) | Anything the merchant didn't send to Razorpay |
 | Amount, order_id, delegation_id, expiry | The reason for the purchase unless requester types it |
 | Locale of the requester's app/device | Locale of the approver (inferred only from country code on phone number) |
 
-If we don't have a piece of data, we omit it. We never fabricate a salutation, a name, or a relationship.
+If a piece of data is not available, it is omitted. Salutations, names, and relationships are never fabricated.
 
 ## Message architecture
 
@@ -24,9 +24,9 @@ Every outgoing message has two parts:
 
 - Default state: **empty**. The UI shows a placeholder like "Add a short note (optional)".
 - If the requester types something, it goes at the top, verbatim, capped at 140 chars (hard cap, enforced server-side after sanitisation). Requests with preamble >140 chars return HTTP 400. Sanitised: strip URLs, phone numbers, RTL override chars (see Anti-spoofing below).
-- If the requester used the OS contact picker, we prepend the raw phonebook label as a salutation *only if the requester opted in via a "Address them as {label}?" confirmation*. Default: off. The label is treated as an opaque string; no interpretation ("Papa" is not read as "father").
+- If the requester used the OS contact picker, the raw phonebook label is prepended as a salutation *only if the requester opted in via a "Address them as {label}?" confirmation*. Default: off. The label is treated as an opaque string; no interpretation ("Papa" is not read as "father").
 
-**No requester signature.** v1 does not append a `— {FirstName}` signature to the message, nor does the approver page display a "From: {name}" line. The delivery channel (WhatsApp / SMS from the requester's own number) already carries identity via the saved contact name on the approver's phone. Razorpay has no verified identity to surface beyond what the phone number implies, so we do not invent one.
+**No requester signature.** v1 does not append a `— {FirstName}` signature to the message, nor does the approver page display a "From: {name}" line. The delivery channel (WhatsApp / SMS from the requester's own number) already carries identity via the saved contact name on the approver's phone. Razorpay has no verified identity to surface beyond what the phone number implies, so no invented identity is added.
 
 ### Part 2 — System block (non-editable, tamper-proof)
 
@@ -42,7 +42,7 @@ Expires: {expiry_local}
 ```
 
 - `verification_mark`: ` ✓ Verified` if merchant KYC is complete, else nothing. No other adjectives.
-- `optional_context_line`: present only when we have tier-appropriate data (see Templates by tier).
+- `optional_context_line`: present only when tier-appropriate data is available (see Templates by tier).
 - `short_url`: `rzp.io/r/{delegation_id}` — always the canonical hosted approval URL, never a redirect.
 - `expiry_local`: rendered in the approver's phone's inferred timezone if determinable from country code, else UTC with an explicit "UTC" suffix.
 
@@ -51,7 +51,7 @@ Expires: {expiry_local}
 Both **SMS and WhatsApp** are pre-selected the moment a valid phone number is entered or a contact is picked. The requester can uncheck either, but both are on by default.
 
 - SMS: always sent if checked. Uses DLT-registered template IDs.
-- WhatsApp: sent if checked AND the approver's number is WhatsApp-reachable (checked at send time via WhatsApp Business API). If not reachable, we fall back to SMS only and surface that to the requester.
+- WhatsApp: sent if checked AND the approver's number is WhatsApp-reachable (checked at send time via WhatsApp Business API). If not reachable, the system falls back to SMS only and surfaces that to the requester.
 - Requester's own share (WhatsApp / SMS / copy-link / QR) is always available in parallel — that path carries the message through the requester's trusted identity and is usually the higher-converting channel.
 
 ## Templates by merchant data tier
@@ -74,7 +74,7 @@ Expires: {expiry}
 
 - `item_summary`: the `name` field of the first line item from the Orders API, truncated at 40 chars.
 - `items_suffix`: ` +{n-1} more` if there are additional line items, else empty.
-- We do NOT invent product names, categories, or descriptions.
+- Product names, categories, and descriptions are never invented.
 
 ### T2 — Standard Razorpay merchant (MCC + tenure + dispute data)
 
@@ -105,7 +105,7 @@ Expires: {expiry}
 {optional_signature}
 ```
 
-No category, no item summary. Just what we have.
+No category, no item summary. Just the data that is available.
 
 ### T4 — Low-trust warning overlay (any tier)
 
@@ -124,7 +124,7 @@ Expires: {expiry}
 {optional_signature}
 ```
 
-- `reason_code`: a short machine-selected phrase from a fixed list (e.g., `recent merchant`, `elevated fraud risk`, `requires review`). We never editorialise beyond this fixed vocabulary.
+- `reason_code`: a short machine-selected phrase from a fixed list (e.g., `recent merchant`, `elevated fraud risk`, `requires review`). The system never editorialises beyond this fixed vocabulary.
 
 ## WhatsApp link preview (OG metadata)
 
@@ -132,21 +132,21 @@ The hosted approval URL serves Open Graph tags so WhatsApp renders a preview car
 
 - `og:title`: `Payment request • ₹{amount} • {merchant_name}`
 - `og:description`: merchant category + verification state + expiry
-- `og:image`: merchant logo if we have a KYC-verified logo on file; otherwise a generic Razorpay-branded placeholder. **Never** a scraped or inferred image.
+- `og:image`: merchant logo if a KYC-verified logo is on file; otherwise a generic Razorpay-branded placeholder. **Never** a scraped or inferred image.
 - `og:url`: canonical `rzp.io/r/{id}`
 
 No client-side control over preview content.
 
 ## Localisation
 
-We do **not** machine-translate the preamble. The system block is rendered in the language chosen by:
+The preamble is **not** machine-translated. The system block is rendered in the language chosen by:
 
-1. **v1 (Launch):** System block sent in English only, regardless of requester's app locale. Approval page does NOT offer language toggle in v1.
-2. **v2+ (Phase 6):** Support for Indian scheduled languages (Hindi first, then 8 others) will be added. System block rendered in requester's app locale if that locale is a scheduled language; otherwise English. Approval page will offer language toggle to approver.
+1. **Proposed v1:** system block would be sent in English only, regardless of requester's app locale. Approval page would not offer a language toggle in v1.
+2. **Proposed v2+ (later phase):** support for Indian scheduled languages (Hindi first, then 8 others) would be added. System block rendered in requester's app locale if that locale is a scheduled language; otherwise English. Approval page would offer a language toggle to the approver.
 
-Translation tables for the system block live in `src/backend/i18n/delegation/*.json`. Launch set: English only. Hindi + 8 other scheduled languages deferred to Phase 6.
+Translation tables for the system block would live in `src/backend/i18n/delegation/*.json`. Proposed launch set: English only; Hindi + 8 other scheduled languages deferred to a later phase.
 
-We **never** translate the requester's preamble or the merchant name.
+The requester's preamble and the merchant name are **never** translated.
 
 ## Template selection logic (pseudocode)
 
@@ -195,7 +195,7 @@ Intentionally minimal:
 
 No template picker. No relationship picker. No salutation picker. No emoji picker.
 
-## What we explicitly do NOT build in v1
+## Out of scope for proposed v1
 
 - No relationship inference or labels ("Dad", "Mom", "Spouse" — none of it).
 - No auto-translation of the preamble.
@@ -203,7 +203,7 @@ No template picker. No relationship picker. No salutation picker. No emoji picke
 - No emoji auto-insertion.
 - No name extraction from phonebook labels for grammar.
 
-These are exactly the class of feature that invents data we don't have. Any revisit post-launch must be gated on explicit user research.
+These are exactly the class of feature that invents data the system does not have. Any revisit post-launch should be gated on explicit user research.
 
 ## Review cadence for template changes
 

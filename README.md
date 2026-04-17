@@ -48,8 +48,10 @@ All three converge at: `rzp.io/r/{delegation_id}` → approver sees trust contex
 ## Running the demo
 
 ```
-cd Claude_AskOthersToPay
+git clone https://github.com/prankiie/AskOthersToPay_RazorPay.git
+cd AskOthersToPay_RazorPay
 npm install
+(cd src/backend && npm install)
 npm run dev       # frontend at localhost:5173
 npm run server    # backend at localhost:3001 (cd src/backend && node server.js)
 ```

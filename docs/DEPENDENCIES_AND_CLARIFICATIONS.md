@@ -14,17 +14,17 @@
 
 **Decision 3**: Compliance requirements (NPCI, RBI 2FA, DPDP) are built into the code. NPCI opinion on whether merchant-anchored delegation is distinct from P2P collect is a dependency tracked in parallel — it does not gate engineering but must be resolved before production launch.
 
-**Decision 4**: Metrics to track in pilot: approval rate, fraud rate, merchant adoption rate, approver complaint rate. Thresholds to be set by pilot team based on baseline measurement.
+**Decision 4**: Proposed metrics to track in a pilot: approval rate, fraud rate, merchant adoption rate, approver complaint rate. Thresholds would be set by a pilot team based on baseline measurement.
 
-**Decision 5**: Fraud mitigations phased by rollout trust tier. Pilot rolls out to trusted merchants first (tier selection by Razorpay GTM). Biometric step-up and CAPTCHA are scale-up dependencies, not v1 requirements.
+**Decision 5**: Fraud mitigations phased by rollout trust tier. A proposed pilot would roll out to trusted merchants first (tier selection by Razorpay GTM). Biometric step-up and CAPTCHA are scale-up dependencies, not v1 requirements.
 
-**Decision 6** (April 15, 2026): **Captured all unknown external identifiers as named assumptions** so the build is integration-ready. Code centralizes all assumed field names, endpoint patterns, template IDs, and webhook event names in `src/backend/config/assumedIntegrations.js`. When external teams confirm the real names, we swap-the-name-and-go in one file. See §8 below.
+**Decision 6** (April 15, 2026): **Captured all unknown external identifiers as named assumptions** so the build is integration-ready. Code centralizes all assumed field names, endpoint patterns, template IDs, and webhook event names in `src/backend/config/assumedIntegrations.js`. When external teams confirm the real names, the integration team swaps the name and goes in one file. See §8 below.
 
 ---
 
 ## 1. How to Use This Document
 
-**For the handoff team:** Resolve **BLOCKER** items before Phase 1 ships (core APIs, ops setup, compliance baked into code); **HIGH** items before shipping Phase 1 (launch readiness); **MEDIUM** items can be deferred to Phase 2 but must be tracked; **LOW** items are informational and guide future phases. (Note: Regulatory approvals are sought in parallel; NPCI opinion must be resolved before production launch.)
+**For the handoff team:** Resolve **BLOCKER** items before a proposed Phase 1 ships (core APIs, ops setup, compliance baked into code); **HIGH** items before shipping Phase 1 (launch readiness); **MEDIUM** items can be deferred to Phase 2 but must be tracked; **LOW** items are informational and guide future phases. (Note: Regulatory approvals are sought in parallel; NPCI opinion must be resolved before production launch.)
 
 This document **does not** re-explain product design. It consolidates every external dependency, stakeholder sign-off, and unverified assumption into one artifact so handoff is clean and blockers are visible upfront.
 
@@ -32,9 +32,9 @@ This document **does not** re-explain product design. It consolidates every exte
 
 ## 1.5. Named Assumptions for Unknown External Identifiers (§8)
 
-**Goal:** The build is "integration-ready" — all external identifiers (field names, API endpoints, event names, template IDs) are explicitly assumed and documented. When an external team confirms the real name, we swap-the-name-and-go in one file: `src/backend/config/assumedIntegrations.js`.
+**Goal:** The build is "integration-ready" — all external identifiers (field names, API endpoints, event names, template IDs) are explicitly assumed and documented. When an external team confirms the real name, the integration team swaps the name and goes in one file: `src/backend/config/assumedIntegrations.js`.
 
-**What changed:** Instead of flagging "exact field name TBD" and leaving a code gap, we now:
+**What changed:** Instead of flagging "exact field name TBD" and leaving a code gap, the proposal now:
 1. Pick a reasonable placeholder that reads like the real name.
 2. Wire the code against the assumption.
 3. Document the assumption in the matrix below (§8).
@@ -46,8 +46,8 @@ This document **does not** re-explain product design. It consolidates every exte
 - One change here propagates everywhere.
 
 **See full matrix in §8 below.** Each row lists:
-- Unknown (what we're guessing about)
-- Assumed name (what we're using in code)
+- Unknown (what's being guessed at)
+- Assumed name (what's being used in code)
 - Owner (who to ask for confirmation)
 - What swaps if wrong (impact of the assumption)
 - Blocker status (does it gate Phase 1 launch?)
@@ -65,21 +65,20 @@ This document **does not** re-explain product design. It consolidates every exte
 | 3 | Webhook event name: delegation approved | `order.delegation_approved` | `razorpayWebhookEvents.delegationApproved` | Razorpay Webhooks / Platform team | Update `assumedIntegrations.js::razorpayWebhookEvents.delegationApproved` + webhook handler in `server.js` | BLOCKER (gates Phase 1 merchant integration) | OPEN |
 | 4 | Webhook event name: delegation declined | `order.delegation_declined` | `razorpayWebhookEvents.delegationDeclined` | Razorpay Webhooks / Platform team | Update `assumedIntegrations.js::razorpayWebhookEvents.delegationDeclined` + webhook handler | BLOCKER | OPEN |
 | 5 | Webhook event name: delegation expired | `order.delegation_expired` | `razorpayWebhookEvents.delegationExpired` | Razorpay Webhooks / Platform team | Update `assumedIntegrations.js::razorpayWebhookEvents.delegationExpired` + webhook handler | BLOCKER | OPEN |
-| 6 | Webhook event name: delegation created | `order.delegation_created` | `razorpayWebhookEvents.delegationCreated` | Razorpay Webhooks / Platform team | Update `assumedIntegrations.js::razorpayWebhookEvents.delegationCreated` + webhook handler | BLOCKER | OPEN |
-| 7 | WhatsApp template ID: T1 (rich e-commerce) | `aop_t1_enterprise_items` | `whatsappTemplateNames.t1_enterpriseItems` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t1_enterpriseItems` + `delegationMessageService.js` template selection | BLOCKER (DLT approval gates send) | OPEN |
-| 8 | WhatsApp template ID: T2 (standard merchant) | `aop_t2_standard_category` | `whatsappTemplateNames.t2_standardCategory` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t2_standardCategory` + message service | BLOCKER | OPEN |
-| 9 | WhatsApp template ID: T3 (small merchant) | `aop_t3_small_merchant` | `whatsappTemplateNames.t3_smallMerchant` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t3_smallMerchant` + message service | BLOCKER | OPEN |
-| 10 | WhatsApp template ID: T4 (low-trust warning) | `aop_t4_low_trust_warning` | `whatsappTemplateNames.t4_lowTrustWarning` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t4_lowTrustWarning` + message service | BLOCKER | OPEN |
-| 11 | DLT SMS template ID: T1 | `DLT_AOP_T1_ITEMS` | `dltSmsTemplateIds.t1_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js::dltSmsTemplateIds.t1_template_id` + config/delegation.js + delegationMessageService.js | BLOCKER (DLT approval gates SMS send) | OPEN |
-| 12 | DLT SMS template ID: T2 | `DLT_AOP_T2_CATEGORY` | `dltSmsTemplateIds.t2_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js` + configs | BLOCKER | OPEN |
-| 13 | DLT SMS template ID: T3 | `DLT_AOP_T3_BASIC` | `dltSmsTemplateIds.t3_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js` + configs | BLOCKER | OPEN |
-| 14 | DLT SMS template ID: T4 | `DLT_AOP_T4_WARNING` | `dltSmsTemplateIds.t4_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js` + configs | BLOCKER | OPEN |
-| 15 | SMS sender ID / brand name | `RAZORP` (Razorpay's existing sender) | `smsSenderId` | Razorpay SMS Ops | Update `assumedIntegrations.js::smsSenderId` + SMS service config | MEDIUM (not core logic; DLT may require specific sender) | OPEN |
-| 16 | Merchant tier field name (for pilot gating) | `merchant_tier` | `merchantTierEnum.fieldName` | Razorpay Data / GTM | Update `assumedIntegrations.js::merchantTierEnum.fieldName` + feature flag logic | MEDIUM (tier gating deferred to Phase 2) | OPEN |
-| 17 | MCC-to-label mapping source | `GET /v1/categories/{mcc_code}` (or static JSON) | `mccLabelMapping.source` | Razorpay Data / Platform | Update `assumedIntegrations.js::mccLabelMapping.source` + service layer | MEDIUM (graceful fallback: omit line if unavailable) | OPEN |
-| 18 | WhatsApp reachability check endpoint | `POST /contacts/check` | `wabaReachabilityCheck.endpointPattern` | Platform Messaging / Integration team | Update `assumedIntegrations.js::wabaReachabilityCheck.endpointPattern` + WABA client | HIGH (fallback to SMS if unreachable) | OPEN |
-| 19 | Ezetap QR payload pattern | `https://rzp.io/q/{merchant_id}/{order_id}` | `ezetapQrEncoding.newPayloadPattern` | Ezetap product / Platform QR | Update `assumedIntegrations.js::ezetapQrEncoding.newPayloadPattern` + QR generation service | BLOCKER (Entry B entirely depends on this) | OPEN |
-| 20 | Merchant age field name for gating | `created_at` (timestamp) | `merchantAgeDataSource.fieldName` | Razorpay Data / Platform | Update `assumedIntegrations.js::merchantAgeDataSource.fieldName` + delegation.js creation gate | HIGH (merchant <30 days ineligibility is core v1) | OPEN |
+| 6 | WhatsApp template ID: T1 (rich e-commerce) | `aop_t1_enterprise_items` | `whatsappTemplateNames.t1_enterpriseItems` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t1_enterpriseItems` + `delegationMessageService.js` template selection | BLOCKER (DLT approval gates send) | OPEN |
+| 7 | WhatsApp template ID: T2 (standard merchant) | `aop_t2_standard_category` | `whatsappTemplateNames.t2_standardCategory` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t2_standardCategory` + message service | BLOCKER | OPEN |
+| 8 | WhatsApp template ID: T3 (small merchant) | `aop_t3_small_merchant` | `whatsappTemplateNames.t3_smallMerchant` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t3_smallMerchant` + message service | BLOCKER | OPEN |
+| 9 | WhatsApp template ID: T4 (low-trust warning) | `aop_t4_low_trust_warning` | `whatsappTemplateNames.t4_lowTrustWarning` | Razorpay Comms / Compliance | Update `assumedIntegrations.js::whatsappTemplateNames.t4_lowTrustWarning` + message service | BLOCKER | OPEN |
+| 10 | DLT SMS template ID: T1 | `DLT_AOP_T1_ITEMS` | `dltSmsTemplateIds.t1_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js::dltSmsTemplateIds.t1_template_id` + config/delegation.js + delegationMessageService.js | BLOCKER (DLT approval gates SMS send) | OPEN |
+| 11 | DLT SMS template ID: T2 | `DLT_AOP_T2_CATEGORY` | `dltSmsTemplateIds.t2_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js` + configs | BLOCKER | OPEN |
+| 12 | DLT SMS template ID: T3 | `DLT_AOP_T3_BASIC` | `dltSmsTemplateIds.t3_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js` + configs | BLOCKER | OPEN |
+| 13 | DLT SMS template ID: T4 | `DLT_AOP_T4_WARNING` | `dltSmsTemplateIds.t4_template_id` | Razorpay SMS Ops / Compliance | Update `assumedIntegrations.js` + configs | BLOCKER | OPEN |
+| 14 | SMS sender ID / brand name | `RAZORP` (Razorpay's existing sender) | `smsSenderId` | Razorpay SMS Ops | Update `assumedIntegrations.js::smsSenderId` + SMS service config | MEDIUM (not core logic; DLT may require specific sender) | OPEN |
+| 15 | Merchant tier field name (for pilot gating) | `merchant_tier` | `merchantTierEnum.fieldName` | Razorpay Data / GTM | Update `assumedIntegrations.js::merchantTierEnum.fieldName` + feature flag logic | MEDIUM (tier gating deferred to Phase 2) | OPEN |
+| 16 | MCC-to-label mapping source | `GET /v1/categories/{mcc_code}` (or static JSON) | `mccLabelMapping.source` | Razorpay Data / Platform | Update `assumedIntegrations.js::mccLabelMapping.source` + service layer | MEDIUM (graceful fallback: omit line if unavailable) | OPEN |
+| 17 | WhatsApp reachability check endpoint | `POST /contacts/check` | `wabaReachabilityCheck.endpointPattern` | Platform Messaging / Integration team | Update `assumedIntegrations.js::wabaReachabilityCheck.endpointPattern` + WABA client | HIGH (fallback to SMS if unreachable) | OPEN |
+| 18 | Ezetap QR payload pattern | `https://rzp.io/q/{merchant_id}/{order_id}` | `ezetapQrEncoding.newPayloadPattern` | Ezetap product / Platform QR | Update `assumedIntegrations.js::ezetapQrEncoding.newPayloadPattern` + QR generation service | BLOCKER (Entry B entirely depends on this) | OPEN |
+| 19 | Merchant age field name for gating | `created_at` (timestamp) | `merchantAgeDataSource.fieldName` | Razorpay Data / Platform | Update `assumedIntegrations.js::merchantAgeDataSource.fieldName` + delegation.js creation gate | HIGH (merchant <30 days ineligibility is core v1) | OPEN |
 
 **Integration Workflow:**
 1. External team confirms real identifier (e.g., "The fraud score field is actually `merchant_risk_signal`, not `razorpay_internal_fraud_score_flagged`").
@@ -95,7 +94,7 @@ This document **does not** re-explain product design. It consolidates every exte
 | Item | Assumption | Requirement | Owner Role | Severity | Status | Date Confirmed |
 |------|-----------|-------------|-----------|----------|--------|---|
 | **Orders API: `line_items` readability** | Existing Orders API already passes `line_items` in `GET /v1/orders/{id}` response; builder can read and render in T1 template without new API feature. | Confirm that `line_items` (if present in order creation) is returned in full (`name`, `description`, `quantity`, `amount`) at payment/delegation time; no truncation or filtering. | Platform API owner (Razorpay Core) | BLOCKER | OPEN | — |
-| **New webhook events: 5 delegation lifecycle events** | Four new events required: `order.delegation_requested`, `.delegation_approved`, `.delegation_declined`, `.delegation_expired`. Not currently part of standard webhook payload. | Platform must commit to (a) event schema design (payload structure, included fields), (b) release timeline (target Phase 1 launch), (c) webhook versioning strategy (v1, v2 backwards compat). See §18.9 acceptance criteria. | Platform Webhooks owner (Razorpay) | BLOCKER | OPEN | — |
+| **New webhook events: 4 delegation lifecycle events** | Four new events required: `order.delegation_requested`, `.delegation_approved`, `.delegation_declined`, `.delegation_expired`. Not currently part of standard webhook payload. | Platform must commit to (a) event schema design (payload structure, included fields), (b) release timeline (target Phase 1 launch), (c) webhook versioning strategy (v1, v2 backwards compat). | Platform Webhooks owner (Razorpay) | BLOCKER | OPEN | — |
 | **New API namespace: `/v1/delegations`** | Feature requires 7 new endpoints (create, get, approve, decline, resend, redelegate, request_otp) under a new namespace. Platform API gateway must route and rate-limit this namespace. | API versioning/gateway team confirms: (a) namespace routing rule, (b) rate-limit bucket (separate from orders/payments or shared?), (c) authentication/authorization middleware compatible with existing Razorpay API key + webhook signature, (d) no breaking changes to existing `/v1/*` namespaces. | Platform API gateway owner | BLOCKER | OPEN | — |
 | **Short URL namespace: `rzp.io/r/{id}` for approvals** | Feature uses `rzp.io/r/{delegation_id}` as canonical approval page URL. Requires DNS + short-URL generation service. | Platform confirms: (a) `rzp.io/r/*` namespace allocated for this feature (no collision with existing shortlinks), (b) URL shortening service can generate >1M unique IDs/month at launch (scalability), (c) redirect logic + 404 handling for expired delegations. | Platform DNS/short-URL service owner | BLOCKER | OPEN | — |
 | **Short URL namespace: `rzp.io/q/{...}` for Entry B QR landing pages** | Entry B (Ezetap POS) dynamic QR encodes `rzp.io/q/{merchant_id}/{order_id}` URLs instead of legacy `upi://pay?...` payloads. Requires new URL namespace + routing. | Platform confirms: (a) `rzp.io/q/*` namespace allocated, (b) landing page routing (POST, GET, OPTIONS), (c) Open Graph metadata serving (for WhatsApp preview), (d) scoped to this feature, no cross-contamination with other POS flows. | Platform DNS/short-URL service owner | BLOCKER | OPEN | — |
@@ -125,7 +124,7 @@ This document **does not** re-explain product design. It consolidates every exte
 | Item | Assumption | Requirement | Owner Role | Severity | Status | Date Confirmed |
 |------|-----------|-------------|-----------|----------|--------|---|
 | **WABA ownership: Who sends delegation messages?** | Delegation messages (SMS, WhatsApp) sent to approver. WABA/SMS sender identity unclear. Is it Razorpay-platform WABA? Merchant's WABA? New delegation-specific WABA? | Product + Comms decide: (a) single platform-owned WABA for all delegations (simplest, no merchant coordination), OR (b) merchant-supplied WABA (requires merchant setup, more complex), (c) dedicate WABA for delegations only (reputational isolation from other Razorpay messages). **Proposal:** Single platform WABA (simplest, launched in Phase 1). | Razorpay Comms/Product | BLOCKER | OPEN | — |
-| **WhatsApp Business API templates: DLT registration** | Four message templates (T1 enterprise, T2 standard, T3 small, T4 low-trust warning) must be registered with WhatsApp Business API + DLT. DLT approval required before send. | Comms team confirms: (a) all 4 templates drafted and reviewed by Legal, (b) submitted to WABA + DLT for approval (typical: 1–3 business days per template), (c) template IDs stored in config (§18.10 Appendix C), (d) approval gating Phase 1 launch (cannot ship without DLT approval). | Razorpay Comms/Compliance | BLOCKER | OPEN | — |
+| **WhatsApp Business API templates: DLT registration** | Four message templates (T1 enterprise, T2 standard, T3 small, T4 low-trust warning) must be registered with WhatsApp Business API + DLT. DLT approval required before send. | Comms team confirms: (a) all 4 templates drafted and reviewed by Legal, (b) submitted to WABA + DLT for approval (typical: 1–3 business days per template), (c) template IDs stored in config, (d) approval gating Phase 1 launch (cannot ship without DLT approval). | Razorpay Comms/Compliance | BLOCKER | OPEN | — |
 | **WhatsApp message delivery receipts** | Feature requires tracking delivery status: sent → delivered → read. Used for analytics + retry logic (if not delivered in 5 min, retry or fallback to SMS). | WABA integration confirms: (a) webhook for delivery status (`status: delivered`, `read`), (b) latency for delivery notification (<1 min typical), (c) no charge for failed sends (platform absorbs cost). | Platform Messaging/Integration team | HIGH | OPEN | — |
 | **SMS DLT template registration: 4 templates, 7–14 day approval timeline** | All SMS messages sent via DLT-registered template IDs. Four templates (T1–T4) must be pre-registered with Indian telecom DLT (Airtel, Vodafone, Jio, BSNL). | Comms/SMS Ops confirm: (a) templates drafted, reviewed, submitted (Phase 0), (b) approval dates tracked for each carrier (can take 7–14 days), (c) template IDs live in config before launch, (d) cannot ship SMS until all approvals received. | SMS Ops / Compliance | BLOCKER | OPEN | — |
 | **SMS sender phone number & brand name** | Outgoing SMS must show "from" number (sender) and brand name for trust. What's the sender ID for delegations? Razorpay's main SMS sender or dedicated? | SMS Ops/Comms confirm: (a) sender ID (e.g., "RAZORP" or "AOTPAY"?), (b) branded number (if available in India), (c) approved by DLT (DLT may restrict sender ID choice), (d) consistent across all carriers. | SMS Ops | HIGH | OPEN | — |
@@ -152,7 +151,7 @@ This document **does not** re-explain product design. It consolidates every exte
 |------|-----------|-------------|-----------|----------|--------|---|
 | **Chargeback liability allocation (approver vs. merchant)** | Spec: "Approver liable for approver-initiated chargeback; merchant liable for fraud/non-delegated chargeback." T&C wording required. Approach locked; legal wording pending. | Legal drafts & signs off: (a) merchant T&C amendment (addendum for delegation terms), (b) approver disclosure (shown at approval time or in FAQ?), (c) disputes workflow documented (proof of delegation approval, OTP validation attached to dispute), (d) circular filed with RBI if required. **Gating Phase 1 launch.** | Razorpay Legal | BLOCKER | OPEN | — |
 | **DPDP Act 2023: Delegation record classification** | Spec defers to "extant Razorpay policy." Clarification: Is a delegation record "personal data"? Is merchant trust score "sensitive"? | Legal/DPO clarifies: (a) delegation record (order_id, phone, amount, timestamp) classified as personal data (yes, contains phone), (b) merchant trust score NOT personal data (aggregate, business-relevant), (c) approver contact classified as "functional necessity" for payment processing (legal justification in privacy policy), (d) no explicit approver consent required beyond TOS acceptance (reuse existing), (e) DPO sign-off. | Razorpay Legal / DPO | BLOCKER | OPEN | — |
-| **Data retention: Delegation records, RBI + DPDP alignment** | Spec says "follow extant Razorpay policy." Config default: 2 years (730 days, per RBI guideline for transaction records). No custom language; delegate to platform policy. | Legal/Compliance confirm: (a) transaction record retention (RBI: min 2 years after close), (b) KYC retention (RBI: 7 years post-account close), (c) OTP/auth logs retention (30 days standard; DPDP: shorter if not needed), (d) deletion/anonymization process documented (scheduled job). Config value in Appendix C. | Razorpay Legal / Compliance | MEDIUM | OPEN | — |
+| **Data retention: Delegation records, RBI + DPDP alignment** | Spec says "follow extant Razorpay policy." Config default: 2 years (730 days, per RBI guideline for transaction records). No custom language; delegate to platform policy. | Legal/Compliance confirm: (a) transaction record retention (RBI: min 2 years after close), (b) KYC retention (RBI: 7 years post-account close), (c) OTP/auth logs retention (30 days standard; DPDP: shorter if not needed), (d) deletion/anonymization process documented (scheduled job). Config value held in `src/backend/config/delegation.js`. | Razorpay Legal / Compliance | MEDIUM | OPEN | — |
 | **Consumer protection disclosures: Approval page wording** | Approval page must disclose (per RBI/consumer guidelines): amount, merchant verification, expiry, what happens on approve. Exact wording requires legal review. | Legal reviews + approves: (a) all text on approval page (system block, trust panel, buttons, warnings), (b) no misleading language (e.g., "auto-approved" if not), (c) disclosure of chargeback policy (link to FAQ or inline), (d) approver can cancel anytime (if true; if not, must state), (e) tested for plain-language clarity (8th-grade reading level target per RBI). | Razorpay Legal | BLOCKER | OPEN | — |
 | **PII in webhooks: Approver identity NOT sent to merchant** | Spec: "Merchant does NOT receive approver identity. They track **buyer** (requestor) instead." Decision locked; confirms platform default (privacy-preserving). Confirms no approver consent required for webhook disclosure. | Legal confirms: (a) approver phone/name NOT in webhook payload (no PII leakage to merchant), (b) merchant payload includes `buyer_id` (requestor) only, (c) approver privacy not violated (no T&C amendment required), (d) if future phase requires payer tracking, requires explicit approver consent (gated feature). | Razorpay Legal | MEDIUM | OPEN | — |
 | **GST implications: Delegation feature** | Spec defers to "no new GST implications" assumption. Clarification needed: Is delegation a "service"? Does Razorpay owe GST on approvals? | Tax team confirms: (a) delegation feature does NOT create new "supply" event (payment processing already subject to GST; delegation routing is not incremental service), (b) no new GST rate/classification, (c) existing Razorpay fee structure unchanged (no separate delegation fee in v1), (d) tax clearance letter issued. | Razorpay Finance / Tax | MEDIUM | OPEN | — |
@@ -163,8 +162,8 @@ This document **does not** re-explain product design. It consolidates every exte
 
 | Item | Assumption | Requirement | Owner Role | Severity | Status | Date Confirmed |
 |------|-----------|-------------|-----------|----------|--------|---|
-| **Pilot-to-scale monitoring criteria** | v1 does not define hard kill thresholds. Instead, pilot team measures baseline metrics in weeks 1–2, sets thresholds, then gates graduation to GA on sustained performance. Metrics: approval rate, fraud rate, merchant adoption rate, approver complaint rate. | Pilot team owns: (a) baseline measurement in weeks 1–2 (week 1 launch, week 2 full measurement), (b) threshold setting per metric (based on baseline + business judgment), (c) monitoring dashboard (daily snapshots, alerts if threshold breached), (d) graduation decision (2 consecutive weeks of all 4 metrics meeting threshold = GA; else stay in pilot, iterate). | Product/Pilot team | MEDIUM | OPEN | — |
-| **Rollout to trusted merchants first** | Pilot phase rolls out only to Razorpay's top-tier/enterprise/established merchants (existing tier already defined). Specific tier selection and merchant list owned by Razorpay GTM. | GTM confirms: (a) which merchant tier qualifies for pilot (e.g., Razorpay-level "enterprise" tier?), (b) merchant list (50–100 merchants target), (c) rollout comms to selected merchants, (d) feedback collection mechanism (survey, support tickets, etc.). | Razorpay GTM | MEDIUM | OPEN | — |
+| **Pilot-to-scale monitoring criteria** | v1 does not define hard kill thresholds. Instead, a pilot team would measure baseline metrics in weeks 1–2, set thresholds, then gate graduation to GA on sustained performance. Metrics: approval rate, fraud rate, merchant adoption rate, approver complaint rate. | A pilot team would own: (a) baseline measurement in weeks 1–2 (week 1 launch, week 2 full measurement), (b) threshold setting per metric (based on baseline + business judgment), (c) monitoring dashboard (daily snapshots, alerts if threshold breached), (d) graduation decision (2 consecutive weeks of all 4 metrics meeting threshold = GA; else stay in pilot, iterate). | Product/Pilot team | MEDIUM | OPEN | — |
+| **Rollout to trusted merchants first** | A proposed pilot phase would roll out only to Razorpay's top-tier/enterprise/established merchants (existing tier already defined). Specific tier selection and merchant list owned by Razorpay GTM. | GTM confirms: (a) which merchant tier qualifies for pilot (e.g., Razorpay-level "enterprise" tier?), (b) merchant list (50–100 merchants target), (c) rollout comms to selected merchants, (d) feedback collection mechanism (survey, support tickets, etc.). | Razorpay GTM | MEDIUM | OPEN | — |
 | **High-risk merchant category gating (rollout-based)** | Spec: "Do NOT hard-block delegations by merchant category in v1. Instead gate by merchant age (<30 days ineligible)." High-risk categories (e.g., gaming, crypto) deferred to Phase 2 category-based blocking. | T&S ops clarifies: (a) v1 gating: merchant age >30 days on Razorpay (simple, config-driven), (b) Phase 2 roadmap: category-based gating (if age-based insufficient), (c) which categories in scope for Phase 2 (crypto, gambling, high-chargeback industries?), (d) category list maintained by T&S. | Trust & Safety run-ops | MEDIUM | OPEN | — |
 | **Merchant age data source & propagation** | Decision locked: merchants <30 days on Razorpay platform ineligible to receive delegations (requestor cannot initiate). Data: `merchant.created_at` timestamp. Must be accessible to all entry points (A, B, C). | Platform confirms: (a) merchant age data readily available (existing field?), (b) propagated to Entry A (Checkout SDK check), Entry B (Ezetap landing page check), Entry C (Payment Link check), (c) gating logic: if `now() - created_at < 30 days`, hide "Ask Someone" button (or block API call). Testable at launch. | Platform Data / Entry point teams | HIGH | OPEN | — |
 | **Fraud rules for approver behavior (VPN/proxy/velocity)** | Feature reuses existing Razorpay fraud stack (VPN/proxy detection, velocity rules). No new fraud signals built in v1; leverage existing. | Fraud team confirms: (a) existing Razorpay fraud stack can be queried during approval (risk score), (b) high-risk approver behavior (VPN, multiple failed OTP, high velocity) may trigger challenge (additional verification) or block, (c) no special delegation-specific fraud rules in v1 (can add in Phase 2), (d) integration point: call fraud API during approval validation. | Razorpay Fraud team | MEDIUM | OPEN | — |
@@ -172,7 +171,7 @@ This document **does not** re-explain product design. It consolidates every exte
 
 ---
 
-## 8. Ops & Support Dependencies
+## 9. Ops & Support Dependencies
 
 | Item | Assumption | Requirement | Owner Role | Severity | Status | Date Confirmed |
 |------|-----------|-------------|-----------|----------|--------|---|
@@ -182,7 +181,7 @@ This document **does not** re-explain product design. It consolidates every exte
 
 ---
 
-## 9. Scale-Up Dependencies (Beyond Pilot, Gated for Rollout)
+## 10. Scale-Up Dependencies (Beyond Pilot, Gated for Rollout)
 
 These are NOT v1 requirements; they gate rollout beyond trusted merchants to broader audience.
 
@@ -190,20 +189,20 @@ These are NOT v1 requirements; they gate rollout beyond trusted merchants to bro
 |------|---------|-------|----------|--------|
 | **Biometric step-up on approval page** | v1 uses OTP only for 2FA. Biometric (fingerprint, face) as alternative/fallback deferred. Requires mobile SDK integration + testing across device types. | Mobile team | MEDIUM | DEFERRED to Phase 2+ |
 | **CAPTCHA provider integration** | v1 does not include CAPTCHA for approver. Phishing risk mitigated by OTP validation only. If fraud spike post-pilot, CAPTCHA can be added as friction. Requires integration with CAPTCHA provider (Google reCAPTCHA, hCaptcha, etc.). | Platform / Fraud team | MEDIUM | DEFERRED to Phase 2+ |
-| **Trusted-merchant tier list from GTM** | Pilot phase gates rollout to specific merchant tier (e.g., Razorpay enterprise). Broader rollout requires GTM to define next-tier cohort (e.g., "established" merchants with 90+ days tenure) and merchant list. | Razorpay GTM | MEDIUM | OPEN (pilot decision needed) |
+| **Trusted-merchant tier list from GTM** | A proposed pilot phase would gate rollout to a specific merchant tier (e.g., Razorpay enterprise). Broader rollout requires GTM to define next-tier cohort (e.g., "established" merchants with 90+ days tenure) and merchant list. | Razorpay GTM | MEDIUM | OPEN (pilot decision needed) |
 
 ---
 
-## 9. Acceptance Gates by Phase
+## 11. Acceptance Gates by Phase
 
 | Phase | Major Dependencies | BLOCKER Items Needing Approval | Target Date (Proposal) |
 |-------|-------------------|------------------------------|--------|
-| **Phase 1: MVP Launch (All Entry Points A, B, C)** | <ul><li>Legal (parallel track): NPCI exemption letter, Chargeback T&C, DPDP DPO sign-off, Approval page wording</li><li>Compliance (parallel track): DLT template approvals (SMS + WhatsApp)</li><li>API team: `/v1/delegations` namespace live</li><li>Webhooks team: 4 new events live</li><li>Checkout SDK: "Ask Someone" button live (Entry A)</li><li>Ezetap: Entry B landing page live (`rzp.io/q/...`)</li><li>Payment Link: Entry C integration live</li><li>Messaging: WhatsApp+SMS templates approved (DLT)</li><li>QA: Integration test passing (create → send → approve → pay)</li><li>Support: Runbook + FAQ ready</li><li>Razorpay Risk team: Internal fraud/risk score API confirmed</li></ul> | <ul><li>DLT approvals complete (SMS + WhatsApp)</li><li>API endpoints live & tested (all 7 endpoints)</li><li>Webhooks delivering</li><li>All 3 entry points working (A + B + D)</li><li>Legal sign-off: approval page, merchant T&C, DPDP (in parallel, does not gate engineering)</li><li>Razorpay risk team provides fraud/risk score integration details</li></ul> | **May 2026 (target)** |
+| **Phase 1: MVP Launch (All Entry Points A, B, C)** | <ul><li>Legal (parallel track): NPCI exemption letter, Chargeback T&C, DPDP DPO sign-off, Approval page wording</li><li>Compliance (parallel track): DLT template approvals (SMS + WhatsApp)</li><li>API team: `/v1/delegations` namespace live</li><li>Webhooks team: 4 new events live</li><li>Checkout SDK: "Ask Someone" button live (Entry A)</li><li>Ezetap: Entry B landing page live (`rzp.io/q/...`)</li><li>Payment Link: Entry C integration live</li><li>Messaging: WhatsApp+SMS templates approved (DLT)</li><li>QA: Integration test passing (create → send → approve → pay)</li><li>Support: Runbook + FAQ ready</li><li>Razorpay Risk team: Internal fraud/risk score API confirmed</li></ul> | <ul><li>DLT approvals complete (SMS + WhatsApp)</li><li>API endpoints live & tested (all 7 endpoints)</li><li>Webhooks delivering</li><li>All 3 entry points working (A + B + C)</li><li>Legal sign-off: approval page, merchant T&C, DPDP (in parallel, does not gate engineering)</li><li>Razorpay risk team provides fraud/risk score integration details</li></ul> | **May 2026 (target)** |
 | **Phase 2: Trust Engine & Broader Rollout** | <ul><li>Pilot success metrics met (approval rate, fraud rate, adoption, complaints)</li><li>GTM: Next merchant tier cohort identified (graduated from pilot tier)</li><li>Data Eng: Real fraud/risk score integration (currently mock or via Razorpay internal API)</li><li>Scale-up dependencies ready (biometric, CAPTCHA)</li></ul> | <ul><li>Pilot graduation criteria met</li><li>Merchant tier expansion plan confirmed by GTM</li></ul> | **June 2026 (proposal)** |
 
 ---
 
-## 10. Change Log
+## 12. Change Log
 
 | Date | Item | Decision / Resolution | Owner | Status |
 |------|------|---------------------|-------|--------|
@@ -218,7 +217,7 @@ These are NOT v1 requirements; they gate rollout beyond trusted merchants to bro
 
 ---
 
-## 11. References & Links
+## 13. References & Links
 
 **Canonical Spec Docs:**
 - [docs/PAYMENT_FLOW_MECHANICS.md](PAYMENT_FLOW_MECHANICS.md) — Technical mechanics of the delegation flow, entry points, data tiers, state machine
@@ -233,7 +232,7 @@ These are NOT v1 requirements; they gate rollout beyond trusted merchants to bro
 
 ---
 
-## 12. Handoff Checklist
+## 14. Handoff Checklist
 
 Before handing code to Phase 1 builder:
 

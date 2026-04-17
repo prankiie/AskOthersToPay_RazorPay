@@ -3,8 +3,10 @@
 ## Setup
 
 ```bash
-cd Claude_AskOthersToPay
+git clone https://github.com/prankiie/AskOthersToPay_RazorPay.git
+cd AskOthersToPay_RazorPay
 npm install
+(cd src/backend && npm install)
 
 # Terminal 1: backend
 npm run server    # runs on localhost:3001

@@ -373,7 +373,7 @@ All entry points create an order and trigger the unified flow above. Differences
 
 ## 3. Razorpay API Grounding
 
-This section maps every system operation to real Razorpay APIs. We verify existing products and flag NEW endpoints required.
+This section maps every system operation to real Razorpay APIs. Existing products are verified and NEW endpoints flagged.
 
 ### 3.1 Existing APIs (Already Documented)
 
@@ -819,7 +819,7 @@ If requestor doesn't want to send via personal WhatsApp/SMS:
 
 The following are explicitly NOT supported in v1:
 
-- **Scanning non-Razorpay static QRs in PhonePe/GPay directly** — We don't own that surface. Customers must use Razorpay consumer scanner (POP app or rzp.io/scan).
+- **Scanning non-Razorpay static QRs in PhonePe/GPay directly** — Razorpay doesn't own that surface. Customers would need to use the Razorpay consumer scanner (POP app or rzp.io/scan).
 - **Recurring/Mandate delegation** — Different legal model (NPCI mandate rules differ from one-time). Future feature.
 - **International/NRI approvers** — India-only (UPI, NPCI compliance). International support requires cross-border payment infrastructure.
 - **Approver reputation/trust scores** — Only merchant trust signals supported; not requestor-approver relationship scoring.
